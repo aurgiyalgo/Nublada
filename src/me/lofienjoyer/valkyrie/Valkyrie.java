@@ -22,6 +22,8 @@ import static org.lwjgl.opengl.GL43.glMultiDrawArraysIndirect;
 
 public class Valkyrie {
 
+    public static ExecutorService executorService;
+
     public static void main(String[] args) throws IOException {
         if (!glfwInit()) {
             System.err.println("Error loading glfw!");
@@ -66,10 +68,10 @@ public class Valkyrie {
         }
         program.bind();
 
-        var executor = Executors.newFixedThreadPool(2);
-        var chunks = new ArrayList<Chunk>();
+        executorService = Executors.newFixedThreadPool(1);
+        var world = new World();
 
-        generateWorld(executor, chunks);
+        generateWorld(world);
 
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
@@ -92,6 +94,7 @@ public class Valkyrie {
             camera.update(windowId, delta);
             program.setUniform("view", Camera.createViewMatrix(camera));
 
+            var chunks = world.getChunks();
             checkFutures(chunks, allocator);
             var drawLength = updateIndirectBuffer(chunks);
 
@@ -108,44 +111,19 @@ public class Valkyrie {
             frames++;
         }
 
-        executor.shutdownNow();
+        executorService.shutdownNow();
 
         glfwDestroyWindow(windowId);
 
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
     }
 
-    private static void generateWorld(ExecutorService executor, List<Chunk> chunks) {
-        var noise = new FastNoiseLite();
-        noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
-        noise.SetFrequency(1 / 256f);
+    private static void generateWorld(World world) {
         final var worldSide = 32;
         final var worldHeight = 8;
         var chunkCount = worldSide * worldSide * worldHeight;
         for (int i = 0; i < chunkCount; i++) {
-            var chunk = new Chunk();
-            int finalI = i;
-            chunk.setMeshFuture(executor.submit(() -> {
-                byte[] chunkData = new byte[32 * 32 * 32];
-                for (int x = 0; x < 32; x++) {
-                    for (int z = 0; z < 32; z++) {
-                        var chunkX = ((finalI / worldSide) % worldSide) * 32;
-                        var chunkY = (finalI / (worldSide * worldSide)) * 32;
-                        var chunkZ = (finalI % worldSide) * 32;
-                        var height = (noise.GetNoise(x + chunkX, z + chunkZ) + 1) / 2f;
-                        height *= 224;
-                        height -= chunkY - 32;
-                        for (int y = 0; y < Math.min(height, 32); y++) {
-                            chunkData[x | y << 5 | z << 10] = 1;
-                        }
-                    }
-                }
-                chunk.setData(chunkData);
-                chunk.setPosition(new Vector3i((finalI / worldSide) % worldSide, finalI / (worldSide * worldSide), finalI % worldSide));
-                return new GreedyMesher(chunkData).compute();
-            }));
-
-            chunks.add(chunk);
+            world.loadChunk((i / worldSide) % worldSide, i / (worldSide * worldSide), i % worldSide);
         }
     }
 
@@ -171,7 +149,7 @@ public class Valkyrie {
 
     private static int updateIndirectBuffer(List<Chunk> chunks) {
         var indirectCmdsList = new ArrayList<Integer>();
-        int[] chunkPositionsArray = new int[chunks.size()];
+        var chunkPositions = new ArrayList<Integer>();
         for (int i = 0; i < chunks.size(); i++) {
             var chunk = chunks.get(i);
             var mesh = chunk.getMesh();
@@ -183,7 +161,12 @@ public class Valkyrie {
             indirectCmdsList.add(0);
             indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
             var position = chunk.getPosition();
-            chunkPositionsArray[i] = getData(position.x, position.y, position.z);
+            chunkPositions.add(getData(position.x, position.y, position.z));
+        }
+
+        int[] chunkPositionsArray = new int[chunkPositions.size()];
+        for (int i = 0; i < chunkPositions.size(); i++) {
+            chunkPositionsArray[i] = chunkPositions.get(i);
         }
 
         int[] indirectCmds = new int[indirectCmdsList.size()];

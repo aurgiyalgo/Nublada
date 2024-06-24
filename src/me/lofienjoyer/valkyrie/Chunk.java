@@ -10,7 +10,12 @@ public class Chunk {
     private byte[] data;
     private MeshInstance mesh;
     private Future<List<Integer>> meshFuture;
-    private Vector3i position;
+
+    public Chunk(Vector3i position) {
+        this.position = position;
+    }
+
+    private final Vector3i position;
 
     public MeshInstance getMesh() {
         return mesh;
@@ -38,10 +43,6 @@ public class Chunk {
 
     public Vector3i getPosition() {
         return position;
-    }
-
-    public void setPosition(Vector3i position) {
-        this.position = position;
     }
 
 }
