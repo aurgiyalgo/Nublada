@@ -46,8 +46,8 @@ public class World {
         return chunks.get(new Vector3i(chunkX, chunkY, chunkZ));
     }
 
-    public List<Chunk> getChunks() {
-        return chunks.values().stream().toList();
+    public Collection<Chunk> getChunks() {
+        return chunks.values();
     }
 
 }

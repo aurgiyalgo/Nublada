@@ -127,7 +127,7 @@ public class Valkyrie {
         }
     }
 
-    private static void checkFutures(List<Chunk> chunks, GpuAllocator allocator) {
+    private static void checkFutures(Collection<Chunk> chunks, GpuAllocator allocator) {
         chunks.forEach(chunk -> {
             if (chunk.getMeshFuture() == null || !chunk.getMeshFuture().isDone())
                 return;
@@ -147,11 +147,10 @@ public class Valkyrie {
         chunk.setMesh(chunkMesh);
     }
 
-    private static int updateIndirectBuffer(List<Chunk> chunks) {
+    private static int updateIndirectBuffer(Collection<Chunk> chunks) {
         var indirectCmdsList = new ArrayList<Integer>();
         var chunkPositions = new ArrayList<Integer>();
-        for (int i = 0; i < chunks.size(); i++) {
-            var chunk = chunks.get(i);
+        for (Chunk chunk : chunks) {
             var mesh = chunk.getMesh();
             if (mesh == null)
                 continue;
