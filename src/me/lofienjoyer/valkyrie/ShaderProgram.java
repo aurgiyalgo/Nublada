@@ -22,14 +22,14 @@ public class ShaderProgram {
         this.buffer = BufferUtils.createFloatBuffer(16);
         shaderProgram = glCreateProgram();
         vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, Files.readString(Path.of(vertexSrc)));
+        glShaderSource(vertexShader, Files.readString(Path.of("res", "shaders", vertexSrc)));
         glCompileShader(vertexShader);
         glAttachShader(shaderProgram, vertexShader);
         if (glGetShaderi(vertexShader, GL_COMPILE_STATUS) == GL_FALSE) {
             System.err.println(glGetShaderInfoLog(vertexShader, 512));
         }
         fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, Files.readString(Path.of(fragmentSrc)));
+        glShaderSource(fragmentShader, Files.readString(Path.of("res", "shaders", fragmentSrc)));
         glCompileShader(fragmentShader);
         glAttachShader(shaderProgram, fragmentShader);
         if (glGetShaderi(fragmentShader, GL_COMPILE_STATUS) == GL_FALSE) {
