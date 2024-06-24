@@ -6,6 +6,8 @@ public interface GpuAllocator {
 
     void delete(MeshInstance instanceToRemove);
 
+    void update(MeshInstance instance, int[] data);
+
     int getFirstFreePosition();
 
 }

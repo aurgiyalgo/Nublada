@@ -38,6 +38,10 @@ public class World {
         }));
     }
 
+    public void unloadChunk(int chunkX, int chunkY, int chunkZ) {
+        chunks.remove(new Vector3i(chunkX, chunkY, chunkZ));
+    }
+
     public Chunk getChunk(int chunkX, int chunkY, int chunkZ) {
         return chunks.get(new Vector3i(chunkX, chunkY, chunkZ));
     }

@@ -10,7 +10,7 @@ public class SsboAllocator implements GpuAllocator {
     private final int buffer;
     private final int auxBuffer;
     private int firstFreePosition;
-    private List<MeshInstance> instances;
+    private final List<MeshInstance> instances;
 
     public SsboAllocator(int index) {
         this.buffer = glGenBuffers();
@@ -20,7 +20,6 @@ public class SsboAllocator implements GpuAllocator {
 
         this.auxBuffer = glGenBuffers();
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, auxBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, 2048 * Integer.BYTES, GL_DYNAMIC_DRAW);
 
         this.instances = new ArrayList<>();
     }
@@ -37,13 +36,15 @@ public class SsboAllocator implements GpuAllocator {
     public void delete(MeshInstance instanceToRemove) {
         instances.remove(instanceToRemove);
         var lastInstance = instances.getLast();
+        var size = lastInstance.getIndex() - instanceToRemove.getIndex() - instanceToRemove.getLength() * Integer.BYTES * 2;
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, auxBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, size, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_COPY_READ_BUFFER, buffer);
         glBindBuffer(GL_COPY_WRITE_BUFFER, auxBuffer);
-        var size = lastInstance.getIndex() - instanceToRemove.getIndex();
         glCopyBufferSubData(
                 GL_COPY_READ_BUFFER,
                 GL_COPY_WRITE_BUFFER,
-                instanceToRemove.getIndex() + instanceToRemove.getLength() * Integer.BYTES,
+                instanceToRemove.getIndex() + instanceToRemove.getLength() * Integer.BYTES * 2,
                 0,
                 size
         );
@@ -62,10 +63,21 @@ public class SsboAllocator implements GpuAllocator {
             if (mesh.getIndex() < instanceToRemove.getIndex())
                 return;
 
-            mesh.setIndex(mesh.getIndex() - instanceToRemove.getLength() * Integer.BYTES);
+            mesh.setIndex(mesh.getIndex() - instanceToRemove.getLength() * Integer.BYTES * 2);
         });
 
-        firstFreePosition -= instanceToRemove.getLength() * Integer.BYTES;
+        firstFreePosition -= instanceToRemove.getLength() * Integer.BYTES * 2;
+    }
+
+    @Override
+    public void update(MeshInstance instance, int[] data) {
+        delete(instance);
+        instance.setLength(data.length);
+        instance.setIndex(firstFreePosition);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, firstFreePosition, data);
+        firstFreePosition += data.length * Integer.BYTES;
+        instances.add(instance);
     }
 
     public int getFirstFreePosition() {
