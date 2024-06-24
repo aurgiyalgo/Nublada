@@ -29,7 +29,11 @@ public class World {
                     height *= 224;
                     height -= (chunkY * 32) - 32;
                     for (int y = 0; y < Math.min(height, 32); y++) {
-                        chunkData[x | y << 5 | z << 10] = 1;
+                        if (y < height - 3) {
+                            chunkData[x | y << 5 | z << 10] = 1;
+                        } else {
+                            chunkData[x | y << 5 | z << 10] = 2;
+                        }
                     }
                 }
             }

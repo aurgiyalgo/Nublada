@@ -68,6 +68,9 @@ public class Valkyrie {
         }
         program.bind();
 
+        var texture = new Texture("res/textures/blocks/tiles.png");
+        glBindTexture(GL_TEXTURE_2D, texture.getId());
+
         executorService = Executors.newFixedThreadPool(1);
         var world = new World();
 

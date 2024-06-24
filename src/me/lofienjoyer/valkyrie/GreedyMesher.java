@@ -111,29 +111,24 @@ public class GreedyMesher {
                                     if (d == 2) {
                                         if (!backFace) {
                                             vertex = getData(x[0], x[1], x[2] - 1, 0, w, h);
-                                            texture = x[1] / 2;
                                         } else {
                                             vertex = getData(x[0], x[1], x[2], 1, w, h);
-                                            texture = x[1] / 2;
                                         }
                                     } else if (d == 0) {
                                         if (backFace) {
                                             vertex = getData(x[0], x[1], x[2], 2, h, w);
-                                            texture = x[1] / 2;
                                         } else {
                                             vertex = getData(x[0] - 1, x[1], x[2], 3, h, w);
-                                            texture = x[1] / 2;
                                         }
                                     } else {
                                         if (!backFace) {
                                             vertex = getData(x[0], x[1] - 1, x[2], 4, h, w);
-                                            texture = x[1] / 2;
                                         } else {
                                             vertex = getData(x[0], x[1], x[2], 5, h, w);
-                                            texture = x[1] / 2;
                                         }
                                     }
 
+                                    texture = mask[n] - 1;
                                     positions.add(vertex);
                                     positions.add(texture);
                                 }

@@ -46,6 +46,6 @@ void main()
         gl_Position = proj * view * vec4(x * width + offsetX, offsetY, y * height + offsetZ, 1.0);
     }
     textureCoords = vec2(x, y + 1);
-    outData = vec3(x * width, y * height, offsetY);
+    outData = vec3(x * width, y * height, texture);
 
 }
