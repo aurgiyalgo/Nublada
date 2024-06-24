@@ -12,7 +12,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 
 public class Camera {
 
-    private static final float SPEED = 32;
+    private static final float SPEED = 128;
 
     private final Vector3f position;
     private float rotationY, rotationX, roll;
@@ -172,7 +172,7 @@ public class Camera {
 
     public static Matrix4f createProjectionMatrix(int width, int height) {
         var projectionMatrix = new Matrix4f();
-        projectionMatrix.perspective((float) Math.toRadians(80), width / (float)height, 0.25f, 1024f);
+        projectionMatrix.perspective((float) Math.toRadians(80), width / (float)height, 0.25f, 4096f);
         return projectionMatrix;
     }
 

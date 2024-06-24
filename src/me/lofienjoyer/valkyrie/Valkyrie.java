@@ -5,9 +5,7 @@ import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -68,11 +66,10 @@ public class Valkyrie {
         }
         program.bind();
 
+        var executor = Executors.newFixedThreadPool(2);
         var chunks = new ArrayList<Chunk>();
-        var executor = Executors.newSingleThreadExecutor();
 
-
-        var drawLength = updateIndirectBuffer(allocator);
+        generateWorld(executor, chunks);
 
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
@@ -95,18 +92,23 @@ public class Valkyrie {
             camera.update(windowId, delta);
             program.setUniform("view", Camera.createViewMatrix(camera));
 
+            checkFutures(chunks, allocator);
+            var drawLength = updateIndirectBuffer(chunks);
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
 
             glfwPollEvents();
             glfwSwapBuffers(windowId);
-//            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
+            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
             counter += (System.nanoTime() - timer);
             delta = (System.nanoTime() - timer) / 1000000000f;
             timer = System.nanoTime();
             frames++;
         }
+
+        executor.shutdownNow();
 
         glfwDestroyWindow(windowId);
 
@@ -114,10 +116,12 @@ public class Valkyrie {
     }
 
     private static void generateWorld(ExecutorService executor, List<Chunk> chunks) {
-        var chunkCount = 1024 * 8;
         var noise = new FastNoiseLite();
         noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
         noise.SetFrequency(1 / 256f);
+        final var worldSide = 32;
+        final var worldHeight = 8;
+        var chunkCount = worldSide * worldSide * worldHeight;
         for (int i = 0; i < chunkCount; i++) {
             var chunk = new Chunk();
             int finalI = i;
@@ -125,9 +129,9 @@ public class Valkyrie {
                 byte[] chunkData = new byte[32 * 32 * 32];
                 for (int x = 0; x < 32; x++) {
                     for (int z = 0; z < 32; z++) {
-                        var chunkX = ((finalI / 32) % 32) * 32;
-                        var chunkY = (finalI / 1024) * 32;
-                        var chunkZ = (finalI % 32) * 32;
+                        var chunkX = ((finalI / worldSide) % worldSide) * 32;
+                        var chunkY = (finalI / (worldSide * worldSide)) * 32;
+                        var chunkZ = (finalI % worldSide) * 32;
                         var height = (noise.GetNoise(x + chunkX, z + chunkZ) + 1) / 2f;
                         height *= 224;
                         height -= chunkY - 32;
@@ -137,7 +141,7 @@ public class Valkyrie {
                     }
                 }
                 chunk.setData(chunkData);
-                chunk.setPosition(new Vector3i((finalI / 32) % 32, finalI / 1024, finalI % 32));
+                chunk.setPosition(new Vector3i((finalI / worldSide) % worldSide, finalI / (worldSide * worldSide), finalI % worldSide));
                 return new GreedyMesher(chunkData).compute();
             }));
 
@@ -145,46 +149,41 @@ public class Valkyrie {
         }
     }
 
-    private static int updateIndirectBuffer(GpuAllocator allocator) {
-        var indirectCmdsList = new ArrayList<Integer>();
-        var chunkCount = 1024 * 8;
-        var meshes = new ArrayList<MeshInstance>();
-        var chunkPositions = new ArrayList<Integer>();
-        var noise = new FastNoiseLite();
-        noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
-        noise.SetFrequency(1 / 256f);
-        var timer = System.nanoTime();
-        for (int i = 0; i < chunkCount; i++) {
-            byte[] chunkData = new byte[32 * 32 * 32];
-            for (int x = 0; x < 32; x++) {
-                for (int z = 0; z < 32; z++) {
-                    var chunkX = ((i / 32) % 32) * 32;
-                    var chunkY = (i / 1024) * 32;
-                    var chunkZ = (i % 32) * 32;
-                    var height = (noise.GetNoise(x + chunkX, z + chunkZ) + 1) / 2f;
-                    height *= 224;
-                    height -= chunkY - 32;
-                    for (int y = 0; y < Math.min(height, 32); y++) {
-                        chunkData[x | y << 5 | z << 10] = 1;
-                    }
-                }
+    private static void checkFutures(List<Chunk> chunks, GpuAllocator allocator) {
+        chunks.forEach(chunk -> {
+            if (chunk.getMeshFuture() == null || !chunk.getMeshFuture().isDone())
+                return;
+
+            try {
+                var positionsList = chunk.getMeshFuture().get();
+                updateChunkMesh(allocator, chunk, positionsList);
+                chunk.setMeshFuture(null);
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
             }
-            var positionsList = new GreedyMesher(chunkData).compute();
-            var chunkMesh = allocator.store(integerListToArray(positionsList));
-            meshes.add(chunkMesh);
-            var position = getData((i / 32) % 32, i / 1024, i % 32);
-            chunkPositions.add(position);
-        }
-        System.out.println((System.nanoTime() - timer) / 1000000f);
+        });
+    }
 
-        System.out.println(allocator.getFirstFreePosition());
+    private static void updateChunkMesh(GpuAllocator allocator, Chunk chunk, List<Integer> positionsList) {
+        var chunkMesh = allocator.store(integerListToArray(positionsList));
+        chunk.setMesh(chunkMesh);
+    }
 
-        for (int i = 0; i < meshes.size(); i++) {
-            var mesh = meshes.get(i);
+    private static int updateIndirectBuffer(List<Chunk> chunks) {
+        var indirectCmdsList = new ArrayList<Integer>();
+        int[] chunkPositionsArray = new int[chunks.size()];
+        for (int i = 0; i < chunks.size(); i++) {
+            var chunk = chunks.get(i);
+            var mesh = chunk.getMesh();
+            if (mesh == null)
+                continue;
+
             indirectCmdsList.add(3);
             indirectCmdsList.add(mesh.getLength());
             indirectCmdsList.add(0);
             indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
+            var position = chunk.getPosition();
+            chunkPositionsArray[i] = getData(position.x, position.y, position.z);
         }
 
         int[] indirectCmds = new int[indirectCmdsList.size()];
@@ -195,11 +194,6 @@ public class Valkyrie {
         int indirectBuffer = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
         glBufferData(GL_DRAW_INDIRECT_BUFFER, indirectCmds, GL_STATIC_DRAW);
-
-        int[] chunkPositionsArray = new int[chunkPositions.size()];
-        for (int i = 0; i < chunkPositions.size(); i++) {
-            chunkPositionsArray[i] = chunkPositions.get(i);
-        }
 
         int chunkPositionBuffer = glGenBuffers();
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
