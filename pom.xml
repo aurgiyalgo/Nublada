@@ -11,12 +11,10 @@
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <lwjgl.version>3.3.1</lwjgl.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lwjgl.version>3.3.4-SNAPSHOT</lwjgl.version>
         <joml.version>1.10.5</joml.version>
-        <maven.build.timestamp.format>yyMMdd_HHmm</maven.build.timestamp.format>
-        <platform>unspecified</platform>
-        <arch>unspecified</arch>
-        <freetype.version>3.3.3</freetype.version>
+        <lwjgl.natives>natives-linux</lwjgl.natives>
     </properties>
 
     <profiles>
@@ -117,37 +115,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>com.google.code.maven-replacer-plugin</groupId>
-                <artifactId>replacer</artifactId>
-                <version>1.5.3</version>
-                <executions>
-                    <execution>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>replace</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <basedir>${basedir}</basedir>
-                    <includes>
-                        <include>**/*.java</include>
-                    </includes>
-                    <replacements>
-                        <replacement>
-                            <token>@VALKYRIE_VERSION@</token>
-                            <value>${project.version}</value>
-                        </replacement>
-                    </replacements>
-                </configuration>
-            </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>res</directory>
-            </resource>
-        </resources>
     </build>
 
     <dependencyManagement>
@@ -240,17 +208,6 @@
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
             <version>2.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-freetype</artifactId>
-            <version>${freetype.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-freetype</artifactId>
-            <version>${freetype.version}</version>
-            <classifier>${lwjgl.natives}</classifier>
         </dependency>
     </dependencies>
 

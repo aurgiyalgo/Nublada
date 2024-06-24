@@ -1,228 +1,236 @@
 package me.lofienjoyer.valkyrie;
 
-import me.lofienjoyer.valkyrie.engine.config.Config;
-import me.lofienjoyer.valkyrie.engine.events.EventHandler;
-import me.lofienjoyer.valkyrie.engine.events.global.StartupEvent;
-import me.lofienjoyer.valkyrie.engine.graphics.display.Window;
-import me.lofienjoyer.valkyrie.engine.graphics.font.ValkyrieFont;
-import me.lofienjoyer.valkyrie.engine.graphics.framebuffer.ColorFramebuffer;
-import me.lofienjoyer.valkyrie.engine.graphics.framebuffer.Framebuffer;
-import me.lofienjoyer.valkyrie.engine.graphics.loader.Loader;
-import me.lofienjoyer.valkyrie.engine.graphics.mesh.QuadMesh;
-import me.lofienjoyer.valkyrie.engine.graphics.render.FontRenderer;
-import me.lofienjoyer.valkyrie.engine.input.Input;
-import me.lofienjoyer.valkyrie.engine.log.ValkyrieLogHandler;
-import me.lofienjoyer.valkyrie.engine.resources.ResourceLoader;
-import me.lofienjoyer.valkyrie.engine.scene.IScene;
-import me.lofienjoyer.valkyrie.engine.world.BlockRegistry;
-import org.lwjgl.BufferUtils;
-import org.lwjgl.glfw.GLFW;
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
-import java.sql.Date;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.logging.Level;
+import java.util.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-import static org.lwjgl.opengl.GL45.*;
+import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL11.glClearColor;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
+import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
+import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
+import static org.lwjgl.opengl.GL43.glMultiDrawArraysIndirect;
 
 public class Valkyrie {
 
-    public static final String VALKYRIE_VERSION = "0.2";
+    public static void main(String[] args) throws IOException {
+        if (!glfwInit()) {
+            System.err.println("Error loading glfw!");
+            return;
+        }
 
-    public static final Logger LOG = ValkyrieLogHandler.initLogs();
-    public static final Loader LOADER = new Loader();
-    public static final EventHandler EVENT_HANDLER = new EventHandler();
-    public static final SimpleDateFormat SCREENSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS");
+        long windowId = glfwCreateWindow(1280, 720, "Valkyrie", 0, 0);
+        glfwMakeContextCurrent(windowId);
 
-    private static ScheduledExecutorService meshingService;
-    private static Framebuffer mainFramebuffer;
-    private static ValkyrieFont defaultFont;
-
-    public static long WINDOW_ID;
-    public static float FOV = (float) Math.toRadians(80.0);
-    public static boolean DEBUG_MODE = false;
-
-    private final Window window;
-    private final Input input;
-    private final Config config;
-
-    private IScene currentScene;
-
-    public Valkyrie() {
-        LOG.setLevel(Level.INFO);
-
-        this.config = Config.getInstance();
-        this.input = Input.getInstance();
-        this.window = Window.getInstance();
-        WINDOW_ID = window.getId();
-    }
-
-    /**
-     * Sets up the basic resources for the engine
-     */
-    public void init() {
-        // Sets up the meshing service
-        var meshingThreadCount = config.get("meshing_thread_count", Integer.class);
-        meshingService = new ScheduledThreadPoolExecutor(meshingThreadCount, r -> {
-            Thread thread = Thread
-                    .ofVirtual()
-                    .name("Meshing Thread")
-                    .unstarted(r);
-            thread.setDaemon(true);
-
-            return thread;
-        });
-
-        EVENT_HANDLER.registerListener(StartupEvent.class, (event) -> {
-            LOG.info("Successful startup!");
-            LOG.info("Meshing thread count: " + meshingThreadCount);
-        });
-
-        FOV = (float) Math.toRadians(config.get("fov", Double.class));
-
+        final var vsync = 0;
+        System.out.println("Vsync: " + (vsync == 1));
+        glfwSwapInterval(vsync);
         GL.createCapabilities();
 
-        mainFramebuffer = new ColorFramebuffer(window.getWidth(), window.getHeight());
-        defaultFont = new ValkyrieFont("res/fonts/Silkscreen-Regular.ttf", 16);
+        glClearColor(1, 0, 0.75f, 1);
 
-        // Sets up the block registry
-        BlockRegistry.setup();
+        var shouldUseSsboRendering = shouldUseSsboRendering(args);
+        System.out.println("Using SSBO: " + shouldUseSsboRendering);
 
-        // Sets up the window properties and callbacks, and then shows it
-        window.setSize(config.get("window_width", Integer.class), config.get("window_height", Integer.class));
-        window.setTitle("Valkyrie");
-        window.setClearColor(0.45f, 0.71f, 1.00f, 1f);
-        window.registerResizeCallback((windowId, width, height) -> glViewport(0, 0, width, height));
-        window.registerResizeCallback(this::onResize);
-        window.show();
+        int[] data = {
+                getData(0, 0),
+                getData(2, 2),
+                getData(0, 2)
+        };
 
-        // Sends an startup event
-        EVENT_HANDLER.process(new StartupEvent());
+        int vaoId = glGenVertexArrays();
+        int vboId = glGenBuffers();
+        glBindVertexArray(vaoId);
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, data, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, 0, 0);
+
+        GpuAllocator allocator;
+        ShaderProgram program;
+        if (shouldUseSsboRendering) {
+            allocator = new SsboAllocator(1);
+            program = new ShaderProgram("vertexSSBO.glsl", "fragment.glsl");
+        } else {
+            program = new ShaderProgram("vertex.glsl", "fragment.glsl");
+            allocator = new VboAllocator(vaoId);
+        }
+        program.bind();
+
+        var chunks = new ArrayList<Chunk>();
+        var executor = Executors.newSingleThreadExecutor();
+
+
+        var drawLength = updateIndirectBuffer(allocator);
+
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_DEPTH_TEST);
+
+        long timer = System.nanoTime();
+        long counter = 0;
+        long frames = 0;
+
+        var camera = new Camera();
+        program.setUniform("proj", Camera.createProjectionMatrix(1280, 720));
+
+        glfwSetWindowSizeCallback(windowId, (id, width, height) -> {
+            glViewport(0, 0, width, height);
+            program.setUniform("proj", Camera.createProjectionMatrix(width, height));
+        });
+
+        var delta = 1 / 60f;
+
+        while (!glfwWindowShouldClose(windowId)) {
+            camera.update(windowId, delta);
+            program.setUniform("view", Camera.createViewMatrix(camera));
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+
+            glfwPollEvents();
+            glfwSwapBuffers(windowId);
+//            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
+            counter += (System.nanoTime() - timer);
+            delta = (System.nanoTime() - timer) / 1000000000f;
+            timer = System.nanoTime();
+            frames++;
+        }
+
+        glfwDestroyWindow(windowId);
+
+        System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
     }
 
-    /**
-     * Starts the engine main loop
-     */
-    public void loop() {
-        long lastFrame = System.nanoTime();
-        float delta = 0f;
+    private static void generateWorld(ExecutorService executor, List<Chunk> chunks) {
+        var chunkCount = 1024 * 8;
+        var noise = new FastNoiseLite();
+        noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
+        noise.SetFrequency(1 / 256f);
+        for (int i = 0; i < chunkCount; i++) {
+            var chunk = new Chunk();
+            int finalI = i;
+            chunk.setMeshFuture(executor.submit(() -> {
+                byte[] chunkData = new byte[32 * 32 * 32];
+                for (int x = 0; x < 32; x++) {
+                    for (int z = 0; z < 32; z++) {
+                        var chunkX = ((finalI / 32) % 32) * 32;
+                        var chunkY = (finalI / 1024) * 32;
+                        var chunkZ = (finalI % 32) * 32;
+                        var height = (noise.GetNoise(x + chunkX, z + chunkZ) + 1) / 2f;
+                        height *= 224;
+                        height -= chunkY - 32;
+                        for (int y = 0; y < Math.min(height, 32); y++) {
+                            chunkData[x | y << 5 | z << 10] = 1;
+                        }
+                    }
+                }
+                chunk.setData(chunkData);
+                chunk.setPosition(new Vector3i((finalI / 32) % 32, finalI / 1024, finalI % 32));
+                return new GreedyMesher(chunkData).compute();
+            }));
 
-        var fboShader = ResourceLoader.loadShader("FBO Shader", "res/shaders/fbo/fbo_vert.glsl", "res/shaders/fbo/fbo_frag.glsl");
-        var quadMesh = new QuadMesh();
-
-        while (window.keepOpen()) {
-            // Render current scene to the framebuffer
-            mainFramebuffer.bind();
-            glClearColor(0.125f, 0f, 1.0f, 0.5f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glEnable(GL_DEPTH_TEST);
-            glViewport(0, 0, mainFramebuffer.getWidth(), mainFramebuffer.getHeight());
-
-            if (currentScene != null)
-                currentScene.render(delta);
-
-            FontRenderer.setupProjectionMatrix(mainFramebuffer.getWidth(), mainFramebuffer.getHeight());
-            FontRenderer.render("Valkyrie v" + VALKYRIE_VERSION, 10, mainFramebuffer.getHeight() - 10, defaultFont);
-
-            mainFramebuffer.unbind();
-            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            // Draw the framebuffer to the window
-            fboShader.bind();
-            glViewport(0, 0, window.getWidth(), window.getHeight());
-            glBindVertexArray(quadMesh.getVaoId());
-            glDisable(GL_DEPTH_TEST);
-            glBindTexture(GL_TEXTURE_2D, mainFramebuffer.getColorTextureId());
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-
-            if (Input.isKeyJustPressed(GLFW.GLFW_KEY_F2))
-                takeScreenshot();
-
-            // Updates the input handler and window
-            // IMPORTANT: the window must be always updated after the input handler,
-            // so it registers properly all the key and button updates
-            input.update();
-            window.update();
-
-            delta = (System.nanoTime() - lastFrame) / 1000000000f;
-            lastFrame = System.nanoTime();
+            chunks.add(chunk);
         }
     }
 
-    /**
-     * Disposes the current scene, sets up the new one and calls its {@code onResize} method once
-     * @param scene New scene
-     */
-    public void setCurrentScene(IScene scene) {
-        if (currentScene != null)
-            currentScene.dispose();
-        scene.init();
-        this.currentScene = scene;
-        scene.onResize(window.getWidth(), window.getHeight());
-    }
-
-    private void onResize(long windowId, int width, int height) {
-        if (currentScene != null)
-            currentScene.onResize(width, height);
-
-        mainFramebuffer.resize(width, height);
-    }
-
-    public void dispose() {
-        if (currentScene != null)
-            currentScene.dispose();
-
-        LOADER.dispose();
-    }
-
-    public void takeScreenshot() {
-        var image = new BufferedImage(window.getWidth(), window.getHeight(), BufferedImage.TYPE_INT_RGB);
-        var buffer = BufferUtils.createByteBuffer(window.getWidth() * window.getHeight() * 4);
-        glReadPixels(0, 0, window.getWidth(), window.getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-
-        new Thread(() -> {
-            for (int x = image.getWidth() - 1; x >= 0; x--) {
-                for (int y = image.getHeight() - 1; y >= 0; y--) {
-                    int i = (x + window.getWidth() * y) * 4;
-                    image.setRGB(x, image.getHeight() - 1 - y, (((buffer.get(i) & 0xFF) & 0x0ff) << 16) | (((buffer.get(i + 1) & 0xFF) & 0x0ff) << 8) | ((buffer.get(i + 2) & 0xFF) & 0x0ff));
+    private static int updateIndirectBuffer(GpuAllocator allocator) {
+        var indirectCmdsList = new ArrayList<Integer>();
+        var chunkCount = 1024 * 8;
+        var meshes = new ArrayList<MeshInstance>();
+        var chunkPositions = new ArrayList<Integer>();
+        var noise = new FastNoiseLite();
+        noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
+        noise.SetFrequency(1 / 256f);
+        var timer = System.nanoTime();
+        for (int i = 0; i < chunkCount; i++) {
+            byte[] chunkData = new byte[32 * 32 * 32];
+            for (int x = 0; x < 32; x++) {
+                for (int z = 0; z < 32; z++) {
+                    var chunkX = ((i / 32) % 32) * 32;
+                    var chunkY = (i / 1024) * 32;
+                    var chunkZ = (i % 32) * 32;
+                    var height = (noise.GetNoise(x + chunkX, z + chunkZ) + 1) / 2f;
+                    height *= 224;
+                    height -= chunkY - 32;
+                    for (int y = 0; y < Math.min(height, 32); y++) {
+                        chunkData[x | y << 5 | z << 10] = 1;
+                    }
                 }
             }
+            var positionsList = new GreedyMesher(chunkData).compute();
+            var chunkMesh = allocator.store(integerListToArray(positionsList));
+            meshes.add(chunkMesh);
+            var position = getData((i / 32) % 32, i / 1024, i % 32);
+            chunkPositions.add(position);
+        }
+        System.out.println((System.nanoTime() - timer) / 1000000f);
 
-            var calendar = Calendar.getInstance();
-            var date = Date.from(calendar.toInstant());
-            var fileName = SCREENSHOT_DATE_FORMAT.format(date) + ".png";
-            var screenshotsFolder = new File("screenshots");
-            if (!screenshotsFolder.exists())
-                screenshotsFolder.mkdir();
+        System.out.println(allocator.getFirstFreePosition());
 
-            try {
-                ImageIO.write(image, "png", Paths.get("screenshots", fileName).toFile());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }).start();
+        for (int i = 0; i < meshes.size(); i++) {
+            var mesh = meshes.get(i);
+            indirectCmdsList.add(3);
+            indirectCmdsList.add(mesh.getLength());
+            indirectCmdsList.add(0);
+            indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
+        }
+
+        int[] indirectCmds = new int[indirectCmdsList.size()];
+        for (int i = 0; i < indirectCmdsList.size(); i++) {
+            indirectCmds[i] = indirectCmdsList.get(i);
+        }
+
+        int indirectBuffer = glGenBuffers();
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, indirectCmds, GL_STATIC_DRAW);
+
+        int[] chunkPositionsArray = new int[chunkPositions.size()];
+        for (int i = 0; i < chunkPositions.size(); i++) {
+            chunkPositionsArray[i] = chunkPositions.get(i);
+        }
+
+        int chunkPositionBuffer = glGenBuffers();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, chunkPositionsArray, GL_STATIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
+
+        return indirectCmds.length / 4;
     }
 
-    public static ScheduledExecutorService getMeshingService() {
-        return meshingService;
+    private static int[] integerListToArray(List<Integer> list) {
+        int[] data = new int[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            data[i] = list.get(i);
+        }
+        return data;
     }
 
-    public static Framebuffer getMainFramebuffer() {
-        return mainFramebuffer;
+    private static int getData(int x, int y) {
+        return x << 5 | y;
     }
 
-    public static ValkyrieFont getDefaultFont() {
-        return defaultFont;
+    private static int getData(int x, int y, int z) {
+        return z << 14 | x << 7 | y;
+    }
+
+    private static void toPosition(int data) {
+        System.out.println(((data >> 7) & 0x1f) + " " + (data & 0x1f) + " " + ((data >> 14) & 0x1f));
+    }
+
+    private static boolean shouldUseSsboRendering(String[] args) {
+        return args.length != 0 && args[0].equals("--use-ssbo");
     }
 
 }
