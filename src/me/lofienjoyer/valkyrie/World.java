@@ -2,10 +2,7 @@ package me.lofienjoyer.valkyrie;
 
 import org.joml.Vector3i;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class World {
 
@@ -23,16 +20,19 @@ public class World {
         var chunk = chunks.computeIfAbsent(new Vector3i(chunkX, chunkY, chunkZ), Chunk::new);
         chunk.setMeshFuture(Valkyrie.executorService.submit(() -> {
             byte[] chunkData = new byte[32 * 32 * 32];
+            var random = new SplittableRandom();
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
                     var height = (noise.GetNoise(x + chunkX * 32, z + chunkZ * 32) + 1) / 2f;
-                    height *= 224;
-                    height -= (chunkY * 32) - 32;
+                    height *= 192;
+                    height -= (chunkY * 32) - 64;
                     for (int y = 0; y < Math.min(height, 32); y++) {
-                        if (y < height - 3) {
-                            chunkData[x | y << 5 | z << 10] = 1;
-                        } else {
+                        if (chunkY * 32 + y < random.nextInt(5) + 1) {
+                            chunkData[x | y << 5 | z << 10] = 5;
+                        } else if (y > height - 3) {
                             chunkData[x | y << 5 | z << 10] = 2;
+                        } else {
+                            chunkData[x | y << 5 | z << 10] = 1;
                         }
                     }
                 }

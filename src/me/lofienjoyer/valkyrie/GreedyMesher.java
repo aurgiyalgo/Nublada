@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+// https://github.com/roboleary/GreedyMesh
 public class GreedyMesher {
 
     private final int[] dims;

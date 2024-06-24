@@ -19,6 +19,6 @@ void main()
     }
 
     float xUv = mod(outData.z, texturesPerSide) / texturesPerSide + mod(outData.x, 1.0) / texturesPerSide;
-    float yUv = int(outData.z / texturesPerSide) / texturesPerSide + mod(outData.y, 1.0) / texturesPerSide;
+    float yUv = int(outData.z / texturesPerSide) / float(texturesPerSide) + mod(outData.y, 1.0) / texturesPerSide;
     FragColor = texture(textureSampler, vec2(xUv, yUv));
 }
