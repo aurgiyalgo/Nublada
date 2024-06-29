@@ -12,7 +12,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 
 public class Camera {
 
-    private static final float SPEED = 128;
+    private static final float SPEED = 32;
 
     private final Vector3f position;
     private float rotationY, rotationX, roll;

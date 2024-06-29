@@ -1,15 +1,15 @@
 package me.lofienjoyer.valkyrie;
 
+import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
@@ -25,6 +25,7 @@ import static org.lwjgl.opengl.GL43.glMultiDrawArraysIndirect;
 public class Valkyrie {
 
     public static ExecutorService executorService;
+    public static Map<Future<List<Integer>>, Vector3i> chunkFutures;
 
     public static void main(String[] args) throws IOException {
         if (!glfwInit()) {
@@ -35,7 +36,7 @@ public class Valkyrie {
         long windowId = glfwCreateWindow(1280, 720, "Valkyrie", 0, 0);
         glfwMakeContextCurrent(windowId);
 
-        final var vsync = 1;
+        final var vsync = 0;
         System.out.println("Vsync: " + (vsync == 1));
         glfwSwapInterval(vsync);
         GL.createCapabilities();
@@ -80,8 +81,9 @@ public class Valkyrie {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
 
-        executorService = Executors.newFixedThreadPool(1);
+        executorService = Executors.newFixedThreadPool(3);
         var world = new World();
+        chunkFutures = new LinkedHashMap<>();
 
         generateWorld(world);
 
@@ -101,15 +103,28 @@ public class Valkyrie {
         });
 
         var delta = 1 / 60f;
-        Vector3i lastPos = null;
         boolean wireframe = false;
 
         while (!glfwWindowShouldClose(windowId)) {
             camera.update(windowId, delta);
             program.setUniform("view", Camera.createViewMatrix(camera));
 
+            if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
+                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, false);
+                if (position != null) {
+                    world.setBlock(0, position);
+                }
+            }
+
+            if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
+                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
+                if (position != null) {
+                    world.setBlock(5, position);
+                }
+            }
+
             var chunks = world.getChunks();
-            checkFutures(chunks, allocator);
+            checkFutures(chunks, allocator, world);
             var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
 
             if (glfwGetKey(windowId, GLFW_KEY_P) == 1)
@@ -138,7 +153,7 @@ public class Valkyrie {
     }
 
     private static void generateWorld(World world) {
-        final var worldSide = 8;
+        final var worldSide = 16;
         final var worldHeight = 8;
         var chunkCount = worldSide * worldSide * worldHeight;
         for (int i = 0; i < chunkCount; i++) {
@@ -146,31 +161,34 @@ public class Valkyrie {
         }
     }
 
-    private static void checkFutures(Collection<Chunk> chunks, GpuAllocator allocator) {
+    private static void checkFutures(Collection<Chunk> chunks, GpuAllocator allocator, World world) {
         chunks.forEach(chunk -> {
-
             if (chunk.isDirty()) {
-                var meshFuture = chunk.getMeshFuture();
-                if (meshFuture != null)
-                    meshFuture.cancel(true);
-
-                chunk.setMeshFuture(executorService.submit(() -> {
+                chunkFutures.put(executorService.submit(() -> {
                     return new GreedyMesher(chunk, chunk.getWorld()).compute();
-                }));
+                }), chunk.getPosition());
                 chunk.setDirty(false);
             }
+        });
 
-            if (chunk.getMeshFuture() == null || !chunk.getMeshFuture().isDone())
+        var it = chunkFutures.keySet().iterator();
+        var count = 0;
+        while (it.hasNext() && count < 2500) {
+            count++;
+            var future = it.next();
+            var position = chunkFutures.get(future);
+            var chunk = world.getChunk(position.x, position.y, position.z);
+            if (future == null || !future.isDone())
                 return;
 
             try {
-                var positionsList = chunk.getMeshFuture().get();
+                var positionsList = future.get();
                 updateChunkMesh(allocator, chunk, positionsList);
-                chunk.setMeshFuture(null);
+                it.remove();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }
     }
 
     private static void updateChunkMesh(GpuAllocator allocator, Chunk chunk, List<Integer> positionsList) {

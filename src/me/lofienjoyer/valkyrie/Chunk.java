@@ -9,9 +9,9 @@ public class Chunk {
 
     private byte[] data;
     private MeshInstance mesh;
-    private Future<List<Integer>> meshFuture;
     private final Vector3i position;
     private boolean dirty;
+    private boolean meshLoaded;
     private final World world;
 
     public Chunk(Vector3i position, World world) {
@@ -47,14 +47,6 @@ public class Chunk {
         this.data = data;
     }
 
-    public Future<List<Integer>> getMeshFuture() {
-        return meshFuture;
-    }
-
-    public void setMeshFuture(Future<List<Integer>> meshFuture) {
-        this.meshFuture = meshFuture;
-    }
-
     public Vector3i getPosition() {
         return position;
     }
@@ -69,6 +61,14 @@ public class Chunk {
 
     public World getWorld() {
         return world;
+    }
+
+    public boolean isMeshLoaded() {
+        return meshLoaded;
+    }
+
+    public void setMeshLoaded(boolean meshLoaded) {
+        this.meshLoaded = meshLoaded;
     }
 
 }
