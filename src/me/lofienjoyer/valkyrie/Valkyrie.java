@@ -112,18 +112,6 @@ public class Valkyrie {
             checkFutures(chunks, allocator);
             var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
 
-            var pos = camera.getPosition();
-            var currentPos = new Vector3i((int) Math.floor(pos.x / 32), (int) Math.floor(pos.y / 32), (int) Math.floor(pos.z / 32));
-            if (!currentPos.equals(lastPos)) {
-                lastPos = currentPos;
-
-                System.out.println("last pos");
-                var currentChunk = world.getChunk(currentPos.x, currentPos.y, currentPos.z);
-                if (currentChunk != null) {
-                    currentChunk.setDirty(true);
-                }
-            }
-
             if (glfwGetKey(windowId, GLFW_KEY_P) == 1)
                 wireframe = !wireframe;
 
@@ -154,7 +142,7 @@ public class Valkyrie {
         final var worldHeight = 8;
         var chunkCount = worldSide * worldSide * worldHeight;
         for (int i = 0; i < chunkCount; i++) {
-            world.loadChunk((i / worldSide) % worldSide, i / (worldSide * worldSide), i % worldSide);
+            world.loadChunk((i / worldSide) % worldSide - worldSide / 2, i / (worldSide * worldSide), i % worldSide - worldSide / 2);
         }
     }
 
@@ -196,7 +184,7 @@ public class Valkyrie {
 
     private static int updateIndirectBuffer(Collection<Chunk> chunks, int indirectBuffer, int chunkPositionBuffer) {
         var indirectCmdsList = new ArrayList<Integer>();
-        var chunkPositions = new ArrayList<Integer>();
+        var chunkPositions = new ArrayList<Vector3i>();
         for (Chunk chunk : chunks) {
             var mesh = chunk.getMesh();
             if (mesh == null)
@@ -207,12 +195,15 @@ public class Valkyrie {
             indirectCmdsList.add(0);
             indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
             var position = chunk.getPosition();
-            chunkPositions.add(getData(position.x, position.y, position.z));
+            chunkPositions.add(position);
         }
 
-        int[] chunkPositionsArray = new int[chunkPositions.size()];
+        int[] chunkPositionsArray = new int[chunkPositions.size() * 3];
         for (int i = 0; i < chunkPositions.size(); i++) {
-            chunkPositionsArray[i] = chunkPositions.get(i);
+            var position = chunkPositions.get(i);
+            chunkPositionsArray[i * 3] = position.x;
+            chunkPositionsArray[i * 3 + 1] = position.y;
+            chunkPositionsArray[i * 3 + 2] = position.z;
         }
 
         int[] indirectCmds = new int[indirectCmdsList.size()];
