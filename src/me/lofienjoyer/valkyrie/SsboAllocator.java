@@ -71,7 +71,7 @@ public class SsboAllocator implements GpuAllocator {
     @Override
     public void update(MeshInstance instance, int[] data) {
         delete(instance);
-        instance.setLength(data.length);
+        instance.setLength(data.length / 2);
         instance.setIndex(firstFreePosition);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, firstFreePosition, data);
