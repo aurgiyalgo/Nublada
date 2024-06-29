@@ -2,7 +2,7 @@
 out vec4 FragColor;
 
 in vec2 textureCoords;
-in vec3 outData;
+in vec4 outData;
 
 const float border = 0.03125;
 
@@ -20,5 +20,5 @@ void main()
 
     float xUv = mod(outData.z, texturesPerSide) / texturesPerSide + mod(outData.x, 1.0) / texturesPerSide;
     float yUv = int(outData.z / texturesPerSide) / float(texturesPerSide) + mod(outData.y, 1.0) / texturesPerSide;
-    FragColor = texture(textureSampler, vec2(xUv, yUv));
+    FragColor = vec4(texture(textureSampler, vec2(xUv, yUv)).rgb * outData.a, 1.0);
 }

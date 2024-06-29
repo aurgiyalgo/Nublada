@@ -91,10 +91,10 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>2.5.5</version>
                 <configuration>
-                    <finalName>Valkyrie_${project.version}_${platform}_${arch}_${maven.build.timestamp}</finalName>
+                    <finalName>Valkyrie_${project.version}_${platform}_${arch}</finalName>
                     <archive>
                         <manifest>
-                            <mainClass>me.lofienjoyer.valkyrie.game.Application</mainClass>
+                            <mainClass>me.lofienjoyer.valkyrie.Valkyrie</mainClass>
                         </manifest>
                         <manifestEntries>
                             <Built-By></Built-By>

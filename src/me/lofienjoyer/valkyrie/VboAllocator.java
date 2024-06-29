@@ -12,11 +12,11 @@ public class VboAllocator implements GpuAllocator {
     private int firstFreePosition;
     private final List<MeshInstance> instances;
 
-    public VboAllocator(int vao) {
+    public VboAllocator(int vao, int sizeInMiB) {
         glBindVertexArray(vao);
         this.vbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, 64 * 1024 * 1024 * Integer.BYTES, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeInMiB * 1024 * 1024 * Integer.BYTES, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(1);
         glVertexAttribIPointer(1, 2, GL_UNSIGNED_INT, 0, 0);
         glVertexBindingDivisor(1, 1);

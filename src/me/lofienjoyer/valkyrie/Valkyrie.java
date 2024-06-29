@@ -1,21 +1,22 @@
 package me.lofienjoyer.valkyrie;
 
-import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.glfw.GLFW.glfwSwapInterval;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
 import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL31C.GL_MAX_UNIFORM_BLOCK_SIZE;
 import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL43.glMultiDrawArraysIndirect;
@@ -33,7 +34,7 @@ public class Valkyrie {
         long windowId = glfwCreateWindow(1280, 720, "Valkyrie", 0, 0);
         glfwMakeContextCurrent(windowId);
 
-        final var vsync = 0;
+        final var vsync = 1;
         System.out.println("Vsync: " + (vsync == 1));
         glfwSwapInterval(vsync);
         GL.createCapabilities();
@@ -60,16 +61,23 @@ public class Valkyrie {
         GpuAllocator allocator;
         ShaderProgram program;
         if (shouldUseSsboRendering) {
-            allocator = new SsboAllocator(1);
+            allocator = new SsboAllocator(1, 16);
             program = new ShaderProgram("vertexSSBO.glsl", "fragment.glsl");
         } else {
             program = new ShaderProgram("vertex.glsl", "fragment.glsl");
-            allocator = new VboAllocator(vaoId);
+            allocator = new VboAllocator(vaoId, 16);
         }
         program.bind();
 
         var texture = new Texture("res/textures/blocks/tiles.png");
         glBindTexture(GL_TEXTURE_2D, texture.getId());
+
+        int indirectBuffer = glGenBuffers();
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+
+        int chunkPositionBuffer = glGenBuffers();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
 
         executorService = Executors.newFixedThreadPool(1);
         var world = new World();
@@ -99,7 +107,7 @@ public class Valkyrie {
 
             var chunks = world.getChunks();
             checkFutures(chunks, allocator);
-            var drawLength = updateIndirectBuffer(chunks);
+            var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -146,11 +154,15 @@ public class Valkyrie {
     }
 
     private static void updateChunkMesh(GpuAllocator allocator, Chunk chunk, List<Integer> positionsList) {
-        var chunkMesh = allocator.store(integerListToArray(positionsList));
-        chunk.setMesh(chunkMesh);
+        var chunkMesh = chunk.getMesh();
+        if (chunkMesh == null) {
+            chunk.setMesh(allocator.store(integerListToArray(positionsList)));
+        } else {
+            allocator.update(chunkMesh, integerListToArray(positionsList));
+        }
     }
 
-    private static int updateIndirectBuffer(Collection<Chunk> chunks) {
+    private static int updateIndirectBuffer(Collection<Chunk> chunks, int indirectBuffer, int chunkPositionBuffer) {
         var indirectCmdsList = new ArrayList<Integer>();
         var chunkPositions = new ArrayList<Integer>();
         for (Chunk chunk : chunks) {
@@ -176,14 +188,11 @@ public class Valkyrie {
             indirectCmds[i] = indirectCmdsList.get(i);
         }
 
-        int indirectBuffer = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
-        glBufferData(GL_DRAW_INDIRECT_BUFFER, indirectCmds, GL_STATIC_DRAW);
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, indirectCmds, GL_DYNAMIC_DRAW);
 
-        int chunkPositionBuffer = glGenBuffers();
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, chunkPositionsArray, GL_STATIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, chunkPositionsArray, GL_DYNAMIC_DRAW);
 
         return indirectCmds.length / 4;
     }

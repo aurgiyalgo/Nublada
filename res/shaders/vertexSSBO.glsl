@@ -3,19 +3,28 @@
 layout (location = 0) in uint data;
 
 out vec2 textureCoords;
-out vec3 outData;
+out vec4 outData;
 
 uniform mat4 proj;
 uniform mat4 view;
 
-layout(std430, binding = 0) readonly restrict buffer positionBuffer
+layout(packed, binding = 0) readonly restrict buffer positionBuffer
 {
     int positionData[];
 };
 
-layout(std430, binding = 1) buffer vertexBuffer
+layout(packed, binding = 1) readonly restrict buffer vertexBuffer
 {
     int vertexData[];
+};
+
+const float shadow[6] = {
+0.875,
+0.875,
+0.75,
+0.75,
+1.0,
+0.5
 };
 
 vec3 getChunkPosition(int index) {
@@ -52,5 +61,5 @@ void main()
         gl_Position = proj * view * vec4(x * width + offsetX, offsetY, y * height + offsetZ, 1.0);
     }
     textureCoords = vec2(x, y + 1);
-    outData = vec3(x * width, y * height, texture);
+    outData = vec4(x * width, y * height, texture, shadow[face]);
 }

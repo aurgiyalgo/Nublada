@@ -12,10 +12,10 @@ public class SsboAllocator implements GpuAllocator {
     private int firstFreePosition;
     private final List<MeshInstance> instances;
 
-    public SsboAllocator(int index) {
+    public SsboAllocator(int index, int sizeInMiB) {
         this.buffer = glGenBuffers();
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, 64 * 1024 * 1024 * Integer.BYTES, GL_DYNAMIC_DRAW);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeInMiB * 1024 * 1024 * Integer.BYTES, GL_DYNAMIC_DRAW);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer);
 
         this.auxBuffer = glGenBuffers();
