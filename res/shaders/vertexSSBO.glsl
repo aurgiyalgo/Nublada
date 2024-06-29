@@ -39,12 +39,12 @@ void main()
     int dataIndex = gl_InstanceID + gl_BaseInstance;
     uvec2 position = uvec2(vertexData[dataIndex * 2], vertexData[dataIndex * 2 + 1]);
     vec3 chunkPosition = getChunkPosition(gl_DrawID);
-    float offsetX = int((position.x >> 5) & 0x1fu) + chunkPosition.x * 32;
-    float offsetY = int(position.x & 0x1fu) + chunkPosition.y * 32;
-    float offsetZ = int((position.x >> 10) & 0x1fu) + chunkPosition.z * 32;
-    int face = int((position.x >> 15) & 0x7u);
-    int width = int((position.x >> 18) & 0x1fu) + 1;
-    int height = int((position.x >> 23) & 0x1fu) + 1;
+    float offsetX = int((position.x >> 6) & 0x3fu) + chunkPosition.x * 32;
+    float offsetY = int(position.x & 0x3fu) + chunkPosition.y * 32;
+    float offsetZ = int((position.x >> 12) & 0x3fu) + chunkPosition.z * 32;
+    int face = int((position.x >> 18) & 0x7u);
+    int width = int((position.x >> 21) & 0x1fu) + 1;
+    int height = int((position.x >> 26) & 0x1fu) + 1;
     int texture = int(position.y);
 
     if (face == 0) {

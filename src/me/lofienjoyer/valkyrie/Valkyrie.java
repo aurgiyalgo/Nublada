@@ -1,5 +1,6 @@
 package me.lofienjoyer.valkyrie;
 
+import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
@@ -100,6 +101,8 @@ public class Valkyrie {
         });
 
         var delta = 1 / 60f;
+        Vector3i lastPos = null;
+        boolean wireframe = false;
 
         while (!glfwWindowShouldClose(windowId)) {
             camera.update(windowId, delta);
@@ -109,13 +112,30 @@ public class Valkyrie {
             checkFutures(chunks, allocator);
             var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
 
+            var pos = camera.getPosition();
+            var currentPos = new Vector3i((int) Math.floor(pos.x / 32), (int) Math.floor(pos.y / 32), (int) Math.floor(pos.z / 32));
+            if (!currentPos.equals(lastPos)) {
+                lastPos = currentPos;
+
+                System.out.println("last pos");
+                var currentChunk = world.getChunk(currentPos.x, currentPos.y, currentPos.z);
+                if (currentChunk != null) {
+                    currentChunk.setDirty(true);
+                }
+            }
+
+            if (glfwGetKey(windowId, GLFW_KEY_P) == 1)
+                wireframe = !wireframe;
+
+            glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
 
             glfwPollEvents();
             glfwSwapBuffers(windowId);
-            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
+//            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
             counter += (System.nanoTime() - timer);
             delta = (System.nanoTime() - timer) / 1000000000f;
             timer = System.nanoTime();
@@ -140,6 +160,18 @@ public class Valkyrie {
 
     private static void checkFutures(Collection<Chunk> chunks, GpuAllocator allocator) {
         chunks.forEach(chunk -> {
+
+            if (chunk.isDirty()) {
+                var meshFuture = chunk.getMeshFuture();
+                if (meshFuture != null)
+                    meshFuture.cancel(true);
+
+                chunk.setMeshFuture(executorService.submit(() -> {
+                    return new GreedyMesher(chunk, chunk.getWorld()).compute();
+                }));
+                chunk.setDirty(false);
+            }
+
             if (chunk.getMeshFuture() == null || !chunk.getMeshFuture().isDone())
                 return;
 

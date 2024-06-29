@@ -217,7 +217,7 @@ public class GreedyMesher {
     }
 
     private static int getData(int x, int y, int z, int face, int width, int height) {
-        return face << 15 | z << 10 | x << 5 | y | width - 1 << 18 | height - 1 << 23;
+        return face << 18 | z << 12 | x << 6 | y | width - 1 << 21 | height - 1 << 26;
     }
 
 }

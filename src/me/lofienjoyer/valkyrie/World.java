@@ -19,7 +19,7 @@ public class World {
 
     public void loadChunk(int chunkX, int chunkY, int chunkZ) {
         var chunk = chunks.computeIfAbsent(new Vector3i(chunkX, chunkY, chunkZ), position -> new Chunk(position, this));
-        chunk.setMeshFuture(Valkyrie.executorService.submit(() -> {
+        Valkyrie.executorService.submit(() -> {
             byte[] chunkData = new byte[32 * 32 * 32];
             chunk.setData(chunkData);
             var random = new SplittableRandom();
@@ -57,8 +57,24 @@ public class World {
                 }
             }
             chunk.setData(chunkData);
-            return new GreedyMesher(chunk, this).compute();
-        }));
+            chunk.setDirty(true);
+
+            for (int i = -1; i <= 1; i++) {
+                for (int j = -1; j <= 1; j++) {
+                    for (int k = -1; k <= 1; k++) {
+                        if (i == 0 && j == 0 && k == 0) {
+                            continue;
+                        }
+
+                        var neighbor = getChunk(i + chunkX, j + chunkY, k + chunkZ);
+                        if (neighbor != null) {
+                            neighbor.setDirty(true);
+                        }
+                    }
+
+                }
+            }
+        });
     }
 
     private float[] getOctaves(int chunkX, int chunkZ) {
