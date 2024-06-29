@@ -14,10 +14,68 @@ public class GreedyMesher {
     private List<Integer> positions;
     private final Random random;
 
-    public GreedyMesher(byte[] chunkPreMeshData) {
-        this.chunkData = chunkPreMeshData.clone();
-        for (int i = 0; i < 6; i++) {
-            chunkPreMeshData.clone();
+    public GreedyMesher(Chunk chunk, World world) {
+        this.chunkData = new byte[34 * 34 * 34];
+        for (int x = 0; x < 32; x++) {
+            for (int y = 0; y < 32; y++) {
+                for (int z = 0; z < 32; z++) {
+                    chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (34 * 34)] = chunk.getData()[x | y << 5 | z << 10];
+                }
+            }
+        }
+
+        var minusX = world.getChunk(chunk.getPosition().x - 1, chunk.getPosition().y, chunk.getPosition().z);
+        if (minusX != null && minusX.getData() != null) {
+            for (int y = 0; y < 32; y++) {
+                for (int z = 0; z < 32; z++) {
+                    chunkData[0 + (y + 1) * 34 + (z + 1) * (34 * 34)] = minusX.getData()[31 | y << 5 | z << 10];
+                }
+            }
+        }
+
+        var plusX = world.getChunk(chunk.getPosition().x + 1, chunk.getPosition().y, chunk.getPosition().z);
+        if (plusX != null && plusX.getData() != null) {
+            for (int y = 0; y < 32; y++) {
+                for (int z = 0; z < 32; z++) {
+                    chunkData[33 + (y + 1) * 34 + (z + 1) * (34 * 34)] = plusX.getData()[0 | y << 5 | z << 10];
+                }
+            }
+        }
+
+        var minusY = world.getChunk(chunk.getPosition().x, chunk.getPosition().y - 1, chunk.getPosition().z);
+        if (minusY != null && minusY.getData() != null) {
+            for (int x = 0; x < 32; x++) {
+                for (int z = 0; z < 32; z++) {
+                    chunkData[(x + 1) + 0 + (z + 1) * (34 * 34)] = minusY.getData()[x | 31 << 5 | z << 10];
+                }
+            }
+        }
+
+        var plusY = world.getChunk(chunk.getPosition().x, chunk.getPosition().y + 1, chunk.getPosition().z);
+        if (plusY != null && plusY.getData() != null) {
+            for (int x = 0; x < 32; x++) {
+                for (int z = 0; z < 32; z++) {
+                    chunkData[(x + 1) + 33 * 34 + (z + 1) * (34 * 34)] = plusY.getData()[x | 0 | z << 10];
+                }
+            }
+        }
+
+        var minusZ = world.getChunk(chunk.getPosition().x, chunk.getPosition().y, chunk.getPosition().z - 1);
+        if (minusZ != null && minusZ.getData() != null) {
+            for (int x = 0; x < 32; x++) {
+                for (int y = 0; y < 32; y++) {
+                    chunkData[(x + 1) + (y + 1) * 34 + 0 * (34 * 34)] = minusZ.getData()[x | y << 5 | 31 << 10];
+                }
+            }
+        }
+
+        var plusZ = world.getChunk(chunk.getPosition().x, chunk.getPosition().y , chunk.getPosition().z + 1);
+        if (plusZ != null && plusZ.getData() != null) {
+            for (int x = 0; x < 32; x++) {
+                for (int y = 0; y < 32; y++) {
+                    chunkData[(x + 1) + (y + 1) * 34 + 33 * (34 * 34)] = plusZ.getData()[x | y << 5 | 0];
+                }
+            }
         }
 
         this.dims = new int[] { 32, 32, 32 };
@@ -155,9 +213,7 @@ public class GreedyMesher {
     }
 
     public int getBlock(int x, int y, int z) {
-        if (chunkData == null) return 0;
-        if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
-        return chunkData[x | y << 5 | z << 10];
+        return chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (34 * 34)];
     }
 
     private static int getData(int x, int y, int z, int face, int width, int height) {

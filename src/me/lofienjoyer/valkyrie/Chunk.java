@@ -12,9 +12,11 @@ public class Chunk {
     private Future<List<Integer>> meshFuture;
     private final Vector3i position;
     private boolean dirty;
+    private final World world;
 
-    public Chunk(Vector3i position) {
+    public Chunk(Vector3i position, World world) {
         this.position = position;
+        this.world = world;
     }
 
     public int getBlock(int x, int y, int z) {
@@ -63,6 +65,10 @@ public class Chunk {
 
     public void setDirty(boolean dirty) {
         this.dirty = dirty;
+    }
+
+    public World getWorld() {
+        return world;
     }
 
 }

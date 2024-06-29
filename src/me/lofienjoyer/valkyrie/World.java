@@ -18,7 +18,7 @@ public class World {
     }
 
     public void loadChunk(int chunkX, int chunkY, int chunkZ) {
-        var chunk = chunks.computeIfAbsent(new Vector3i(chunkX, chunkY, chunkZ), Chunk::new);
+        var chunk = chunks.computeIfAbsent(new Vector3i(chunkX, chunkY, chunkZ), position -> new Chunk(position, this));
         chunk.setMeshFuture(Valkyrie.executorService.submit(() -> {
             byte[] chunkData = new byte[32 * 32 * 32];
             chunk.setData(chunkData);
@@ -57,7 +57,7 @@ public class World {
                 }
             }
             chunk.setData(chunkData);
-            return new GreedyMesher(chunkData).compute();
+            return new GreedyMesher(chunk, this).compute();
         }));
     }
 

@@ -130,7 +130,7 @@ public class Valkyrie {
     }
 
     private static void generateWorld(World world) {
-        final var worldSide = 32;
+        final var worldSide = 8;
         final var worldHeight = 8;
         var chunkCount = worldSide * worldSide * worldHeight;
         for (int i = 0; i < chunkCount; i++) {
