@@ -17,6 +17,18 @@ public class Chunk {
         this.position = position;
     }
 
+    public int getBlock(int x, int y, int z) {
+        if (data == null) return 0;
+        if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
+        return data[x | y << 5 | z << 10];
+    }
+
+    public void setBlock(int x, int y, int z, int id) {
+        if (data == null) return;
+        if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return;
+        data[x | y << 5 | z << 10] = (byte) id;
+    }
+
     public MeshInstance getMesh() {
         return mesh;
     }
