@@ -38,8 +38,7 @@ public class VboAllocator implements GpuAllocator {
 
     public void delete(MeshInstance instanceToRemove) {
         instances.remove(instanceToRemove);
-        var lastInstance = instances.getLast();
-        var size = lastInstance.getIndex() - instanceToRemove.getIndex() - instanceToRemove.getLength() * Integer.BYTES * 2;
+        var size = firstFreePosition - (instanceToRemove.getIndex() + instanceToRemove.getLength() * Integer.BYTES * 2);
         glBindBuffer(GL_ARRAY_BUFFER, auxVbo);
         glBufferData(GL_ARRAY_BUFFER, size, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_COPY_READ_BUFFER, vbo);
@@ -75,7 +74,7 @@ public class VboAllocator implements GpuAllocator {
     @Override
     public void update(MeshInstance instance, int[] data) {
         delete(instance);
-        instance.setLength(data.length);
+        instance.setLength(data.length / 2);
         instance.setIndex(firstFreePosition);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferSubData(GL_ARRAY_BUFFER, firstFreePosition, data);

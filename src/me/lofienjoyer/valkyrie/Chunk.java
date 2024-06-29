@@ -10,12 +10,12 @@ public class Chunk {
     private byte[] data;
     private MeshInstance mesh;
     private Future<List<Integer>> meshFuture;
+    private final Vector3i position;
+    private boolean dirty;
 
     public Chunk(Vector3i position) {
         this.position = position;
     }
-
-    private final Vector3i position;
 
     public MeshInstance getMesh() {
         return mesh;
@@ -43,6 +43,14 @@ public class Chunk {
 
     public Vector3i getPosition() {
         return position;
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    public void setDirty(boolean dirty) {
+        this.dirty = dirty;
     }
 
 }

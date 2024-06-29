@@ -35,8 +35,7 @@ public class SsboAllocator implements GpuAllocator {
 
     public void delete(MeshInstance instanceToRemove) {
         instances.remove(instanceToRemove);
-        var lastInstance = instances.getLast();
-        var size = lastInstance.getIndex() - instanceToRemove.getIndex() - instanceToRemove.getLength() * Integer.BYTES * 2;
+        var size = firstFreePosition - (instanceToRemove.getIndex() + instanceToRemove.getLength() * Integer.BYTES * 2);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, auxBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, size, GL_DYNAMIC_DRAW);
         glBindBuffer(GL_COPY_READ_BUFFER, buffer);
