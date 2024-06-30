@@ -25,7 +25,6 @@ import static org.lwjgl.opengl.GL43.glMultiDrawArraysIndirect;
 public class Valkyrie {
 
     public static ExecutorService executorService;
-    public static Map<Future<List<Integer>>, Vector3i> chunkFutures;
 
     public static void main(String[] args) throws IOException {
         if (!glfwInit()) {
@@ -36,7 +35,7 @@ public class Valkyrie {
         long windowId = glfwCreateWindow(1280, 720, "Valkyrie", 0, 0);
         glfwMakeContextCurrent(windowId);
 
-        final var vsync = 0;
+        final var vsync = 1;
         System.out.println("Vsync: " + (vsync == 1));
         glfwSwapInterval(vsync);
         GL.createCapabilities();
@@ -83,7 +82,6 @@ public class Valkyrie {
 
         executorService = Executors.newFixedThreadPool(3);
         var world = new World();
-        chunkFutures = new LinkedHashMap<>();
 
         generateWorld(world);
 
@@ -164,31 +162,32 @@ public class Valkyrie {
     private static void checkFutures(Collection<Chunk> chunks, GpuAllocator allocator, World world) {
         chunks.forEach(chunk -> {
             if (chunk.isDirty()) {
-                chunkFutures.put(executorService.submit(() -> {
+                if (!chunk.isPriority()) {
+                    chunk.getFutures().forEach(future -> future.cancel(true));
+                    chunk.getFutures().clear();
+                }
+                chunk.getFutures().add(executorService.submit(() -> {
                     return new GreedyMesher(chunk, chunk.getWorld()).compute();
-                }), chunk.getPosition());
+                }));
                 chunk.setDirty(false);
             }
-        });
 
-        var it = chunkFutures.keySet().iterator();
-        var count = 0;
-        while (it.hasNext() && count < 2500) {
-            count++;
-            var future = it.next();
-            var position = chunkFutures.get(future);
-            var chunk = world.getChunk(position.x, position.y, position.z);
-            if (future == null || !future.isDone())
+            var futures = chunk.getFutures();
+            if (futures.isEmpty())
+                return;
+
+            var firstFuture = chunk.getFutures().getFirst();
+            if (!firstFuture.isDone())
                 return;
 
             try {
-                var positionsList = future.get();
+                var positionsList = firstFuture.get();
                 updateChunkMesh(allocator, chunk, positionsList);
-                it.remove();
+                futures.removeFirst();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             }
-        }
+        });
     }
 
     private static void updateChunkMesh(GpuAllocator allocator, Chunk chunk, List<Integer> positionsList) {

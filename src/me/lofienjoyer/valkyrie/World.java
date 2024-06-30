@@ -177,6 +177,7 @@ public class World {
         var blockZ = Math.abs(z - position.z * CHUNK_SIDE);
         chunk.setBlock(blockX, blockY, blockZ, voxel);
         chunk.setDirty(true);
+        chunk.setPriority(true);
         if (blockX == 0) {
             var neighbor = getChunk(position.x - 1, position.y, position.z);
             if (neighbor != null)
@@ -184,28 +185,38 @@ public class World {
         }
         if (blockX == CHUNK_SIDE - 1) {
             var neighbor = getChunk(position.x + 1, position.y, position.z);
-            if (neighbor != null)
+            if (neighbor != null) {
                 neighbor.setDirty(true);
+                neighbor.setPriority(true);
+            }
         }
         if (blockY == 0) {
             var neighbor = getChunk(position.x, position.y - 1, position.z);
-            if (neighbor != null)
+            if (neighbor != null) {
                 neighbor.setDirty(true);
+                neighbor.setPriority(true);
+            }
         }
         if (blockY == CHUNK_SIDE - 1) {
             var neighbor = getChunk(position.x, position.y + 1, position.z);
-            if (neighbor != null)
+            if (neighbor != null) {
                 neighbor.setDirty(true);
+                neighbor.setPriority(true);
+            }
         }
         if (blockZ == 0) {
             var neighbor = getChunk(position.x, position.y, position.z - 1);
-            if (neighbor != null)
+            if (neighbor != null) {
                 neighbor.setDirty(true);
+                neighbor.setPriority(true);
+            }
         }
         if (blockZ == CHUNK_SIDE - 1) {
             var neighbor = getChunk(position.x, position.y, position.z + 1);
-            if (neighbor != null)
+            if (neighbor != null) {
                 neighbor.setDirty(true);
+                neighbor.setPriority(true);
+            }
         }
     }
 

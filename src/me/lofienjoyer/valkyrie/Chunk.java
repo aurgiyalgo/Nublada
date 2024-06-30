@@ -2,6 +2,7 @@ package me.lofienjoyer.valkyrie;
 
 import org.joml.Vector3i;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
 
@@ -11,12 +12,15 @@ public class Chunk {
     private MeshInstance mesh;
     private final Vector3i position;
     private boolean dirty;
+    private boolean priority;
     private boolean meshLoaded;
     private final World world;
+    private final List<Future<List<Integer>>> futures;
 
     public Chunk(Vector3i position, World world) {
         this.position = position;
         this.world = world;
+        this.futures = new ArrayList<>();
     }
 
     public int getBlock(int x, int y, int z) {
@@ -69,6 +73,18 @@ public class Chunk {
 
     public void setMeshLoaded(boolean meshLoaded) {
         this.meshLoaded = meshLoaded;
+    }
+
+    public List<Future<List<Integer>>> getFutures() {
+        return futures;
+    }
+
+    public boolean isPriority() {
+        return priority;
+    }
+
+    public void setPriority(boolean priority) {
+        this.priority = priority;
     }
 
 }
