@@ -1,6 +1,5 @@
 package me.lofienjoyer.valkyrie;
 
-import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
@@ -9,7 +8,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
@@ -17,7 +15,6 @@ import static org.lwjgl.opengl.GL11.glClearColor;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
 import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL31C.GL_MAX_UNIFORM_BLOCK_SIZE;
 import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 import static org.lwjgl.opengl.GL43.glMultiDrawArraysIndirect;
@@ -83,8 +80,6 @@ public class Valkyrie {
         executorService = Executors.newFixedThreadPool(3);
         var world = new World();
 
-        generateWorld(world);
-
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
 
@@ -121,6 +116,7 @@ public class Valkyrie {
                 }
             }
 
+            updateWorld(world, camera);
             var chunks = world.getChunks();
             checkFutures(chunks, allocator, world);
             var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
@@ -150,13 +146,34 @@ public class Valkyrie {
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
     }
 
-    private static void generateWorld(World world) {
+    private static void updateWorld(World world, Camera camera) {
         final var worldSide = 16;
         final var worldHeight = 8;
-        var chunkCount = worldSide * worldSide * worldHeight;
-        for (int i = 0; i < chunkCount; i++) {
-            world.loadChunk((i / worldSide) % worldSide - worldSide / 2, i / (worldSide * worldSide), i % worldSide - worldSide / 2);
+        var cameraX = (int)Math.floor(camera.getPosition().x / 32);
+        var cameraY = (int)Math.floor(camera.getPosition().y / 32);
+        var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
+        world.getChunks().stream().toList().forEach(chunk -> {
+            var position = chunk.getPosition();
+            if (Math.abs(position.x - cameraX) > worldSide/2 + 2 || Math.abs(position.z - cameraZ) > worldSide/2 + 2 || Math.abs(position.y - cameraY) > worldHeight/2 + 2)
+                world.unloadChunk(position.x, position.y, position.z);
+        });
+
+        for (int x = -worldSide/2; x <= worldSide/2; x++) {
+            for (int z = -worldSide/2; z <= worldSide/2; z++) {
+                for (int y = -worldHeight/2; y <= worldHeight/2; y++) {
+                    var chunkX = cameraX - x;
+                    var chunkY = cameraY - y;
+                    var chunkZ = cameraZ - z;
+                    var chunk = world.getChunk(chunkX, chunkY, chunkZ);
+                    if (chunk == null)
+                        world.loadChunk(chunkX, chunkY, chunkZ);
+                }
+            }
         }
+//        var chunkCount = worldSide * worldSide * worldHeight;
+//        for (int i = 0; i < chunkCount; i++) {
+//            world.loadChunk((i / worldSide) % worldSide - worldSide / 2, i / (worldSide * worldSide), i % worldSide - worldSide / 2);
+//        }
     }
 
     private static void checkFutures(Collection<Chunk> chunks, GpuAllocator allocator, World world) {
