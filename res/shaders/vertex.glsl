@@ -32,9 +32,9 @@ void main()
     int x = int(data >> 5);
     int y = int(data & 0x1fu) - 1;
     vec3 chunkPosition = getChunkPosition(gl_DrawID);
-    float offsetX = int((position.x >> 6) & 0x3fu) + chunkPosition.x * 32;
-    float offsetY = int(position.x & 0x3fu) + chunkPosition.y * 32;
-    float offsetZ = int((position.x >> 12) & 0x3fu) + chunkPosition.z * 32;
+    float offsetX = int((position.x >> 6) & 0x3fu) + chunkPosition.x * 32 - 1;
+    float offsetY = int(position.x & 0x3fu) + chunkPosition.y * 32 - 1;
+    float offsetZ = int((position.x >> 12) & 0x3fu) + chunkPosition.z * 32 - 1;
     int face = int((position.x >> 18) & 0x7u);
     int width = int((position.x >> 21) & 0x1fu) + 1;
     int height = int((position.x >> 26) & 0x1fu) + 1;
