@@ -10,37 +10,57 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
-import static org.lwjgl.opengl.GL11.glClearColor;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
-import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.opengl.GL40.GL_DRAW_INDIRECT_BUFFER;
-import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
-import static org.lwjgl.opengl.GL43.glMultiDrawArraysIndirect;
+import static org.lwjgl.opengl.GL46.*;
 
 public class Valkyrie {
 
     public static ExecutorService executorService;
 
+    private static int width = 1280, height = 720;
+
     public static void main(String[] args) throws IOException {
+        final var vsync = 0;
+        System.out.println("Vsync: " + (vsync == 1));
+
+        final var shouldUseSsboRendering = shouldUseSsboRendering(args);
+        System.out.println("Using SSBO: " + shouldUseSsboRendering);
+
         if (!glfwInit()) {
             System.err.println("Error loading glfw!");
             return;
         }
 
-        long windowId = glfwCreateWindow(1280, 720, "Valkyrie", 0, 0);
+        long windowId = glfwCreateWindow(width, height, "Valkyrie", 0, 0);
         glfwMakeContextCurrent(windowId);
-
-        final var vsync = 1;
-        System.out.println("Vsync: " + (vsync == 1));
         glfwSwapInterval(vsync);
         GL.createCapabilities();
 
         glClearColor(1, 0, 0.75f, 1);
 
-        var shouldUseSsboRendering = shouldUseSsboRendering(args);
-        System.out.println("Using SSBO: " + shouldUseSsboRendering);
+        float[] quadVertices = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+                // positions   // texCoords
+                -1.0f,  1.0f,  0.0f, 1.0f,
+                -1.0f, -1.0f,  0.0f, 0.0f,
+                1.0f, -1.0f,  1.0f, 0.0f,
+
+                -1.0f,  1.0f,  0.0f, 1.0f,
+                1.0f, -1.0f,  1.0f, 0.0f,
+                1.0f,  1.0f,  1.0f, 1.0f
+        };
+
+        int quadVao = glGenVertexArrays();
+        int quadVbo = glGenBuffers();
+        glBindVertexArray(quadVao);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVbo);
+        glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, false, Float.BYTES * 4, 0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, Float.BYTES * 4, Float.BYTES * 2);
+
+        var fboProgram = new ShaderProgram("fboVertex.glsl", "fboFragment.glsl");
+
+        var fbo = new Framebuffer(width, height);
 
         int[] data = {
                 getData(0, 0),
@@ -88,11 +108,14 @@ public class Valkyrie {
         long frames = 0;
 
         var camera = new Camera();
-        program.setUniform("proj", Camera.createProjectionMatrix(1280, 720));
+        program.setUniform("proj", Camera.createProjectionMatrix(width, height));
 
         glfwSetWindowSizeCallback(windowId, (id, width, height) -> {
+            Valkyrie.width = width;
+            Valkyrie.height = height;
             glViewport(0, 0, width, height);
             program.setUniform("proj", Camera.createProjectionMatrix(width, height));
+            fbo.resize(width, height);
         });
 
         var delta = 1 / 60f;
@@ -100,6 +123,7 @@ public class Valkyrie {
 
         while (!glfwWindowShouldClose(windowId)) {
             camera.update(windowId, delta);
+            program.bind();
             program.setUniform("view", Camera.createViewMatrix(camera));
 
             if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
@@ -126,13 +150,29 @@ public class Valkyrie {
 
             glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
+            glClearColor(0.125f, 0.5f, 0.75f, 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            glBindTexture(GL_TEXTURE_2D, texture.getId());
+            glEnable(GL_DEPTH_TEST);
+            glBindVertexArray(vaoId);
+            glBindBuffer(GL_ARRAY_BUFFER, vboId);
             glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glClearColor(1, 1, 1, 1);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            fboProgram.bind();
+            glBindVertexArray(quadVao);
+            glDisable(GL_DEPTH_TEST);
+            glBindBuffer(GL_ARRAY_BUFFER, quadVbo);
+            glBindTexture(GL_TEXTURE_2D, fbo.getTextureId());
+            glDrawArrays(GL_TRIANGLES, 0, 6);
 
             glfwPollEvents();
             glfwSwapBuffers(windowId);
-//            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
+            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
             counter += (System.nanoTime() - timer);
             delta = (System.nanoTime() - timer) / 1000000000f;
             timer = System.nanoTime();
@@ -147,7 +187,7 @@ public class Valkyrie {
     }
 
     private static void updateWorld(World world, Camera camera) {
-        final var worldSide = 16;
+        final var worldSide = 8;
         final var worldHeight = 8;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraY = (int)Math.floor(camera.getPosition().y / 32);
