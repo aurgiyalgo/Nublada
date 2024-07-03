@@ -8,7 +8,7 @@ import java.util.concurrent.Future;
 
 public class Chunk {
 
-    private byte[] data;
+    private short[] data;
     private MeshInstance mesh;
     private final Vector3i position;
     private boolean dirty;
@@ -26,13 +26,25 @@ public class Chunk {
     public int getBlock(int x, int y, int z) {
         if (data == null) return 0;
         if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
-        return data[x | y << 5 | z << 10];
+        return data[x | y << 5 | z << 10] & 0xf;
     }
 
     public void setBlock(int x, int y, int z, int id) {
         if (data == null) return;
         if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return;
-        data[x | y << 5 | z << 10] = (byte) id;
+        data[x | y << 5 | z << 10] = (short) (id & 0xf);
+    }
+
+    public int getLight(int x, int y, int z) {
+        if (data == null) return 0;
+        if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
+        return data[x | y << 5 | z << 10] >> 4;
+    }
+
+    public void setLight(int x, int y, int z, int light) {
+        if (data == null) return;
+        if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return;
+        data[x | y << 5 | z << 10] = (short) ((data[x | y << 5 | z << 10] & 0xf) | (light << 4));
     }
 
     public MeshInstance getMesh() {
@@ -43,11 +55,11 @@ public class Chunk {
         this.mesh = mesh;
     }
 
-    public byte[] getData() {
+    public short[] getData() {
         return data;
     }
 
-    public void setData(byte[] data) {
+    public void setData(short[] data) {
         this.data = data;
     }
 

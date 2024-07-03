@@ -9,13 +9,13 @@ public class GreedyMesher {
 
     private final int[] dims;
 
-    private final byte[] chunkData;
+    private final short[] chunkData;
 
     private List<Integer> positions;
     private final Random random;
 
     public GreedyMesher(Chunk chunk, World world) {
-        this.chunkData = new byte[34 * 34 * 34];
+        this.chunkData = new short[34 * 34 * 34];
         for (int x = 0; x < 32; x++) {
             for (int y = 0; y < 32; y++) {
                 for (int z = 0; z < 32; z++) {
@@ -130,7 +130,7 @@ public class GreedyMesher {
                             voxelFace1 = getBlock((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2]));
 
                             mask[n++] = ((voxelFace == 0 || voxelFace1 == 0))
-                                    ? backFace ? voxelFace1 : voxelFace
+                                    ? backFace ? voxelFace1 | (getLight(x[0], x[1], x[2]) << 4) : voxelFace | (getLight((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2])) << 4)
                                     : 0;
                         }
                     }
@@ -143,7 +143,7 @@ public class GreedyMesher {
 
                         for(i = 0; i < dims[u];) {
 
-                            if(mask[n] != 0) {
+                            if((mask[n] & 0xf) != 0) {
 
                                 for(w = 1; i + w < dims[u] && mask[n + w] != 0 && mask[n + w] == mask[n]; w++) {}
 
@@ -213,7 +213,11 @@ public class GreedyMesher {
     }
 
     public int getBlock(int x, int y, int z) {
-        return chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (34 * 34)];
+        return chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (34 * 34)] & 0xf;
+    }
+
+    public int getLight(int x, int y, int z) {
+        return chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (34 * 34)] >> 4;
     }
 
     private static int getData(int x, int y, int z, int face, int width, int height) {

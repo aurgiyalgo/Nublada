@@ -23,7 +23,7 @@ public class World {
     public void loadChunk(int chunkX, int chunkY, int chunkZ) {
         var chunk = chunks.computeIfAbsent(new Vector3i(chunkX, chunkY, chunkZ), position -> new Chunk(position, this));
         Valkyrie.executorService.submit(() -> {
-            byte[] chunkData = new byte[32 * 32 * 32];
+            short[] chunkData = new short[32 * 32 * 32];
             chunk.setData(chunkData);
             var random = new SplittableRandom();
             var heightMap = getOctaves(chunkX * 32, chunkZ * 32);
@@ -178,50 +178,74 @@ public class World {
         chunk.setBlock(blockX, blockY, blockZ, voxel);
         chunk.setDirty(true);
         chunk.setPriority(true);
+        updateBlockNeighbors(position, blockX, blockY, blockZ);
+    }
+
+    public void setBlock(int voxel, Vector3f position) {
+        setBlock(voxel, (int)position.x, (int)position.y, (int)position.z);
+    }
+
+    public void setLight(int light, int x, int y, int z) {
+        Vector3i position = getChunkPositionAt(x, y, z);
+        var chunk = chunks.get(position);
+        if (chunk == null || chunk.getData() == null) {
+            return;
+        }
+
+        var blockX = Math.abs(x - position.x * CHUNK_SIDE);
+        var blockY = Math.abs(y - position.y * CHUNK_SIDE);
+        var blockZ = Math.abs(z - position.z * CHUNK_SIDE);
+        chunk.setLight(blockX, blockY, blockZ, light);
+        chunk.setDirty(true);
+        chunk.setPriority(true);
+        updateBlockNeighbors(position, blockX, blockY, blockZ);
+    }
+
+    public void setLight(int light, Vector3f position) {
+        setLight(light, (int)position.x, (int)position.y, (int)position.z);
+    }
+
+    private void updateBlockNeighbors(Vector3i chunkPos, int blockX, int blockY, int blockZ) {
         if (blockX == 0) {
-            var neighbor = getChunk(position.x - 1, position.y, position.z);
+            var neighbor = getChunk(chunkPos.x - 1, chunkPos.y, chunkPos.z);
             if (neighbor != null)
                 neighbor.setDirty(true);
         }
         if (blockX == CHUNK_SIDE - 1) {
-            var neighbor = getChunk(position.x + 1, position.y, position.z);
+            var neighbor = getChunk(chunkPos.x + 1, chunkPos.y, chunkPos.z);
             if (neighbor != null) {
                 neighbor.setDirty(true);
                 neighbor.setPriority(true);
             }
         }
         if (blockY == 0) {
-            var neighbor = getChunk(position.x, position.y - 1, position.z);
+            var neighbor = getChunk(chunkPos.x, chunkPos.y - 1, chunkPos.z);
             if (neighbor != null) {
                 neighbor.setDirty(true);
                 neighbor.setPriority(true);
             }
         }
         if (blockY == CHUNK_SIDE - 1) {
-            var neighbor = getChunk(position.x, position.y + 1, position.z);
+            var neighbor = getChunk(chunkPos.x, chunkPos.y + 1, chunkPos.z);
             if (neighbor != null) {
                 neighbor.setDirty(true);
                 neighbor.setPriority(true);
             }
         }
         if (blockZ == 0) {
-            var neighbor = getChunk(position.x, position.y, position.z - 1);
+            var neighbor = getChunk(chunkPos.x, chunkPos.y, chunkPos.z - 1);
             if (neighbor != null) {
                 neighbor.setDirty(true);
                 neighbor.setPriority(true);
             }
         }
         if (blockZ == CHUNK_SIDE - 1) {
-            var neighbor = getChunk(position.x, position.y, position.z + 1);
+            var neighbor = getChunk(chunkPos.x, chunkPos.y, chunkPos.z + 1);
             if (neighbor != null) {
                 neighbor.setDirty(true);
                 neighbor.setPriority(true);
             }
         }
-    }
-
-    public void setBlock(int voxel, Vector3f position) {
-        setBlock(voxel, (int)position.x, (int)position.y, (int)position.z);
     }
 
     private float[] getOctaves(int chunkX, int chunkZ) {

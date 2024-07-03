@@ -120,6 +120,7 @@ public class Valkyrie {
 
         var delta = 1 / 60f;
         boolean wireframe = false;
+        var random = new Random();
 
         while (!glfwWindowShouldClose(windowId)) {
             camera.update(windowId, delta);
@@ -136,7 +137,7 @@ public class Valkyrie {
             if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
                 var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
                 if (position != null) {
-                    world.setBlock(5, position);
+                    world.setLight(random.nextInt(0xfff + 1), position);
                 }
             }
 
@@ -160,6 +161,7 @@ public class Valkyrie {
             glBindBuffer(GL_ARRAY_BUFFER, vboId);
             glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
 
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(1, 1, 1, 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

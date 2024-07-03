@@ -5,6 +5,7 @@ layout (location = 1) in uvec2 position;
 
 out vec2 textureCoords;
 out vec4 outData;
+out float passLight;
 
 uniform mat4 proj;
 uniform mat4 view;
@@ -38,7 +39,8 @@ void main()
     int face = int((position.x >> 18) & 0x7u);
     int width = int((position.x >> 21) & 0x1fu) + 1;
     int height = int((position.x >> 26) & 0x1fu) + 1;
-    int texture = int(position.y);
+    int texture = int(position.y & 0xfu);
+    int light = int(position.y >> 4) & 0xfff;
 
     if (face == 0) {
         gl_Position = proj * view * vec4(x * width + offsetX, y * height + offsetY, offsetZ + 1, 1.0);
@@ -55,5 +57,6 @@ void main()
     }
     textureCoords = vec2(x, y + 1);
     outData = vec4(x * width, y * height, texture, shadow[face]);
+    passLight = light;
 
 }
