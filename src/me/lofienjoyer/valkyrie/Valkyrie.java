@@ -42,6 +42,9 @@ public class Valkyrie {
         glfwSwapInterval(vsync);
         GL.createCapabilities();
 
+        var input = Input.getInstance();
+        input.setup(windowId);
+
         ImGui.createContext();
         var imGuiGlfw = new ImGuiImplGlfw();
         var imGuiGl3 = new ImGuiImplGl3();
@@ -152,10 +155,11 @@ public class Valkyrie {
                     }
                 }
 
-                if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
+                if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_2)) {
                     var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
                     if (position != null) {
-                        world.setLight(random.nextInt(0xfff + 1), position);
+                        world.setBlock(6, position);
+                        world.setLight(10, position);
                     }
                 }
             }
@@ -167,7 +171,7 @@ public class Valkyrie {
             checkFutures(chunks, allocator, world);
             var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
 
-            if (glfwGetKey(windowId, GLFW_KEY_P) == 1)
+            if (Input.isKeyJustPressed(GLFW_KEY_P))
                 wireframe = !wireframe;
 
             glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
@@ -176,6 +180,7 @@ public class Valkyrie {
             glClearColor(0.125f, 0.5f, 0.75f, 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            program.setUniform("dayTime", (float) Math.sin(glfwGetTime()) * 0.8f);
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
@@ -235,6 +240,7 @@ public class Valkyrie {
             ImGui.render();
             imGuiGl3.renderDrawData(ImGui.getDrawData());
 
+            input.update();
             glfwPollEvents();
             glfwSwapBuffers(windowId);
             counter += (System.nanoTime() - timer);

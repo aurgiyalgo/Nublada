@@ -8,6 +8,7 @@ in float passLight;
 const float border = 0.03125;
 
 uniform sampler2D textureSampler;
+uniform float dayTime;
 
 const int atlasSize = 128;
 const int textureSize = 32;
@@ -25,5 +26,5 @@ void main()
     float r = (int(passLight) >> 8) & 0xf;
     float g = (int(passLight) >> 4) & 0xf;
     float b = int(passLight) & 0xf;
-    FragColor = vec4(vec3(color.r * (r + 1), color.g * (g + 1), color.b * (b + 1)) * outData.a / 16.0, 1.0);
+    FragColor = vec4(color.rgb * max(passLight * outData.a / (8), ((dayTime + 1) / 2.0)), 1.0);
 }

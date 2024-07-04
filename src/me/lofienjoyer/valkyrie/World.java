@@ -11,6 +11,7 @@ public class World {
 
     private final Map<Vector3i, Chunk> chunks;
     private final FastNoiseLite noise;
+    private final Queue<LightNode> lightNodes;
 
     public World() {
         this.chunks = new HashMap<>();
@@ -18,6 +19,11 @@ public class World {
         this.noise = new FastNoiseLite(random.nextInt());
         noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
         noise.SetFrequency(1 / 512f);
+        this.lightNodes = new ArrayDeque<>();
+    }
+
+    public void update() {
+
     }
 
     public void loadChunk(int chunkX, int chunkY, int chunkZ) {
@@ -196,6 +202,117 @@ public class World {
         var blockY = Math.abs(y - position.y * CHUNK_SIDE);
         var blockZ = Math.abs(z - position.z * CHUNK_SIDE);
         chunk.setLight(blockX, blockY, blockZ, light);
+        int index = blockX | blockY << 5 | blockZ << 10;
+        lightNodes.add(new LightNode(index, chunk));
+        while (!lightNodes.isEmpty()) {
+            var node = lightNodes.poll();
+
+            int pos = node.position();
+            var lightChunk = node.chunk();
+
+            int lightX = pos & 0x1f;
+            int lightY = (pos >> 5) & 0x1f;
+            int lightZ = pos >> 10;
+            int lightLevel = lightChunk.getLight(lightX, lightY, lightZ);
+
+            if (lightX - 1 < 0) {
+                var neighbor = getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                if (neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
+                    neighbor.setDirty(true);
+                    int newIndex = 31 | lightY << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX - 1, lightY, lightZ) == 0 && lightChunk.getLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setLight(lightX - 1, lightY, lightZ, lightLevel - 1);
+                    int newIndex = (lightX - 1) | lightY << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightX + 1 > 31) {
+                var neighbor = getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                if (neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getLight(0, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setLight(0, lightY, lightZ, lightLevel - 1);
+                    neighbor.setDirty(true);
+                    int newIndex = 0 | lightY << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX + 1, lightY, lightZ) == 0 && lightChunk.getLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setLight(lightX + 1, lightY, lightZ, lightLevel - 1);
+                    int newIndex = (lightX + 1) | lightY << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightY - 1 < 0) {
+                var neighbor = getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1, lightChunk.getPosition().z);
+                if (neighbor.getBlock(lightX, 31, lightZ) == 0 && neighbor.getLight(lightX, 31, lightZ) + 2 <= lightLevel) {
+                    neighbor.setLight(lightX, 31, lightZ, lightLevel - 1);
+                    neighbor.setDirty(true);
+                    int newIndex = lightX | 31 << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setLight(lightX, lightY - 1, lightZ, lightLevel - 1);
+                    int newIndex = lightX | (lightY - 1) << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightY + 1 > 31) {
+                var neighbor = getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1, lightChunk.getPosition().z);
+                if (neighbor.getBlock(lightX, 0, lightZ) == 0 && neighbor.getLight(lightX, 0, lightZ) + 2 <= lightLevel) {
+                    neighbor.setLight(lightX, 0, lightZ, lightLevel - 1);
+                    neighbor.setDirty(true);
+                    int newIndex = lightX | 0 << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setLight(lightX, lightY + 1, lightZ, lightLevel - 1);
+                    int newIndex = lightX | (lightY + 1) << 5 | lightZ << 10;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightZ - 1 < 0) {
+                var neighbor = getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z - 1);
+                if (neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getLight(lightX, lightY, 31) + 2 <= lightLevel) {
+                    neighbor.setLight(lightX, lightY, 31, lightLevel - 1);
+                    neighbor.setDirty(true);
+                    int newIndex = lightX | lightY << 5 | 31 << 10;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX, lightY, lightZ - 1) == 0 && lightChunk.getLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
+                    lightChunk.setLight(lightX, lightY, lightZ - 1, lightLevel - 1);
+                    int newIndex = lightX | lightY << 5 | (lightZ - 1) << 10;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightZ + 1 > 31) {
+                var neighbor = getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z + 1);
+                if (neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getLight(lightX, lightY, 0) + 2 <= lightLevel) {
+                    neighbor.setLight(lightX, lightY, 0, lightLevel - 1);
+                    neighbor.setDirty(true);
+                    int newIndex = lightX | lightY << 5 | 0 << 10;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX, lightY, lightZ + 1) == 0 && lightChunk.getLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
+                    lightChunk.setLight(lightX, lightY, lightZ + 1, lightLevel - 1);
+                    int newIndex = lightX | lightY << 5 | (lightZ + 1) << 10;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            lightChunk.setDirty(true);
+        }
         chunk.setDirty(true);
         chunk.setPriority(true);
         updateBlockNeighbors(position, blockX, blockY, blockZ);
