@@ -26,5 +26,5 @@ void main()
     float r = (int(passLight) >> 8) & 0xf;
     float g = (int(passLight) >> 4) & 0xf;
     float b = int(passLight) & 0xf;
-    FragColor = vec4(color.rgb * max(passLight * outData.a / (8), ((dayTime + 1) / 2.0)), 1.0);
+    FragColor = vec4(color.rgb * max(passLight / (8), ((dayTime + 1) / 2.0) * 0.8 + 0.2) * outData.a, 1.0);
 }

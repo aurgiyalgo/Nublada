@@ -148,7 +148,7 @@ public class Valkyrie {
             if (updateCamera) {
                 camera.update(windowId, delta);
 
-                if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
+                if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_1)) {
                     var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, false);
                     if (position != null) {
                         world.setBlock(0, position);
@@ -163,6 +163,8 @@ public class Valkyrie {
                     }
                 }
             }
+            world.update();
+
             program.bind();
             program.setUniform("view", Camera.createViewMatrix(camera));
 
@@ -177,10 +179,12 @@ public class Valkyrie {
             glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
             glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
-            glClearColor(0.125f, 0.5f, 0.75f, 1);
+
+            var dayTime = (float) Math.sin(glfwGetTime() * 0.0625);
+            glClearColor(0.125f * (dayTime * 0.8f + 0.2f), 0.5f * (dayTime * 0.8f + 0.2f), 0.75f * (dayTime * 0.8f + 0.2f), 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            program.setUniform("dayTime", (float) Math.sin(glfwGetTime()) * 0.8f);
+            program.setUniform("dayTime", dayTime);
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
@@ -204,10 +208,6 @@ public class Valkyrie {
 
             ImGui.begin("Debug");
 
-            if (ImGui.button("Hola")) {
-                System.out.println("Pog");
-            }
-
             ImGui.beginTabBar("tabs");
 
             if (ImGui.beginTabItem("Data")) {
@@ -216,6 +216,7 @@ public class Valkyrie {
                 ImGui.text("Chunk meshes");
                 ImGui.sameLine();
                 ImGui.progressBar((float) allocator.getFirstFreePosition() / (4 * 1024 * 1024 * Integer.BYTES));
+                ImGui.text(allocator.getFirstFreePosition() + " / " + (4 * 1024 * 1024 * Integer.BYTES));
                 ImGui.endTabItem();
             }
 
