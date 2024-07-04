@@ -1,5 +1,7 @@
 package me.lofienjoyer.valkyrie;
 
+import imgui.ImGui;
+import imgui.flag.ImGuiMouseCursor;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
@@ -53,7 +55,7 @@ public class Camera {
         }
 
         if (GLFW.glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS && !mouseLocked) {
-            GLFW.glfwSetCursorPos(window, 320, 180);
+            GLFW.glfwSetCursorPos(window, 640, 360);
             GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_HIDDEN);
 
             mouseLocked = true;
@@ -70,8 +72,8 @@ public class Camera {
             newX = x.get();
             newY = y.get();
 
-            double deltaX = newX - 320;
-            double deltaY = newY - 180;
+            double deltaX = newX - 640;
+            double deltaY = newY - 360;
 
             rotX = newX != prevX;
             rotY = newY != prevY;
@@ -79,7 +81,7 @@ public class Camera {
             prevX = newX;
             prevY = newY;
 
-            GLFW.glfwSetCursorPos(window, 320, 180);
+            GLFW.glfwSetCursorPos(window, 640, 360);
 
             rotationX += (float) deltaX * 0.05f;
             rotationY += (float) deltaY * 0.05f;

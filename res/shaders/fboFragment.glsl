@@ -4,6 +4,7 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 uniform sampler2D screenTexture;
+uniform float saturation;
 
 const float Epsilon = 1e-10;
 
@@ -32,7 +33,7 @@ void main()
 {
     vec4 color = texture(screenTexture, TexCoords);
     vec3 col_hsv = RGBtoHSV(color.rgb);
-    col_hsv.y *= (0.6 * 2.0);
+    col_hsv.y *= (saturation * 2.0);
     vec3 col_rgb = HSVtoRGB(col_hsv.rgb);
 
     FragColor = vec4(col_rgb.rgb, color.a);

@@ -1,5 +1,10 @@
 package me.lofienjoyer.valkyrie;
 
+import imgui.ImGui;
+import imgui.flag.ImGuiInputTextFlags;
+import imgui.gl3.ImGuiImplGl3;
+import imgui.glfw.ImGuiImplGlfw;
+import imgui.type.ImString;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
@@ -19,7 +24,7 @@ public class Valkyrie {
     private static int width = 1280, height = 720;
 
     public static void main(String[] args) throws IOException {
-        final var vsync = 0;
+        final var vsync = 1;
         System.out.println("Vsync: " + (vsync == 1));
 
         final var shouldUseSsboRendering = shouldUseSsboRendering(args);
@@ -31,9 +36,20 @@ public class Valkyrie {
         }
 
         long windowId = glfwCreateWindow(width, height, "Valkyrie", 0, 0);
+        glfwWindowHint(GLFW_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_VERSION_MINOR, 6);
         glfwMakeContextCurrent(windowId);
         glfwSwapInterval(vsync);
         GL.createCapabilities();
+
+        ImGui.createContext();
+        var imGuiGlfw = new ImGuiImplGlfw();
+        var imGuiGl3 = new ImGuiImplGl3();
+        imGuiGlfw.init(windowId, true);
+        imGuiGl3.init("#version 460");
+
+        ImGui.getIO().setIniFilename(null);
+        ImGui.getIO().setLogFilename(null);
 
         glClearColor(1, 0, 0.75f, 1);
 
@@ -79,11 +95,11 @@ public class Valkyrie {
         GpuAllocator allocator;
         ShaderProgram program;
         if (shouldUseSsboRendering) {
-            allocator = new SsboAllocator(1, 16);
+            allocator = new SsboAllocator(1, 4);
             program = new ShaderProgram("vertexSSBO.glsl", "fragment.glsl");
         } else {
             program = new ShaderProgram("vertex.glsl", "fragment.glsl");
-            allocator = new VboAllocator(vaoId, 16);
+            allocator = new VboAllocator(vaoId, 4);
         }
         program.bind();
 
@@ -121,27 +137,32 @@ public class Valkyrie {
         var delta = 1 / 60f;
         boolean wireframe = false;
         var random = new Random();
+        var updateCamera = true;
+        var saturation = new float[] { 0.25f };
+        int tab = 0;
 
         while (!glfwWindowShouldClose(windowId)) {
-            camera.update(windowId, delta);
+            if (updateCamera) {
+                camera.update(windowId, delta);
+
+                if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
+                    var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, false);
+                    if (position != null) {
+                        world.setBlock(0, position);
+                    }
+                }
+
+                if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
+                    var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
+                    if (position != null) {
+                        world.setLight(random.nextInt(0xfff + 1), position);
+                    }
+                }
+            }
             program.bind();
             program.setUniform("view", Camera.createViewMatrix(camera));
 
-            if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
-                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, false);
-                if (position != null) {
-                    world.setBlock(0, position);
-                }
-            }
-
-            if (glfwGetMouseButton(windowId, GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
-                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
-                if (position != null) {
-                    world.setLight(random.nextInt(0xfff + 1), position);
-                }
-            }
-
-            updateWorld(world, camera);
+            updateWorld(world, camera, allocator);
             var chunks = world.getChunks();
             checkFutures(chunks, allocator, world);
             var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
@@ -166,21 +187,64 @@ public class Valkyrie {
             glClearColor(1, 1, 1, 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             fboProgram.bind();
+            fboProgram.setUniform("saturation", saturation[0]);
             glBindVertexArray(quadVao);
             glDisable(GL_DEPTH_TEST);
             glBindBuffer(GL_ARRAY_BUFFER, quadVbo);
             glBindTexture(GL_TEXTURE_2D, fbo.getTextureId());
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
+            imGuiGlfw.newFrame();
+            ImGui.newFrame();
+
+            ImGui.begin("Debug");
+
+            if (ImGui.button("Hola")) {
+                System.out.println("Pog");
+            }
+
+            ImGui.beginTabBar("tabs");
+
+            if (ImGui.beginTabItem("Data")) {
+                ImGui.text("FPS: " + 1 / ((System.nanoTime() - timer) / 1000000000f));
+                ImGui.text("Frame time: " + (System.nanoTime() - timer) / 1000000000f);
+                ImGui.text("Chunk meshes");
+                ImGui.sameLine();
+                ImGui.progressBar((float) allocator.getFirstFreePosition() / (4 * 1024 * 1024 * Integer.BYTES));
+                ImGui.endTabItem();
+            }
+
+            if (ImGui.beginTabItem("Params")) {
+                ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
+                ImGui.endTabItem();
+            }
+
+            if (ImGui.beginTabItem("Textures")) {
+                ImGui.image(texture.getId(), 256, 256);
+                ImGui.sameLine();
+                ImGui.image(fbo.getTextureId(), 256, 256);
+                ImGui.endTabItem();
+            }
+
+            ImGui.endTabBar();
+
+            updateCamera = !ImGui.isWindowHovered() && !ImGui.isWindowFocused();
+
+            ImGui.end();
+
+            ImGui.render();
+            imGuiGl3.renderDrawData(ImGui.getDrawData());
+
             glfwPollEvents();
             glfwSwapBuffers(windowId);
-            System.out.println(1 / ((System.nanoTime() - timer) / 1000000000f));
             counter += (System.nanoTime() - timer);
             delta = (System.nanoTime() - timer) / 1000000000f;
             timer = System.nanoTime();
             frames++;
         }
 
+        imGuiGl3.dispose();
+        imGuiGlfw.dispose();
         executorService.shutdownNow();
 
         glfwDestroyWindow(windowId);
@@ -188,7 +252,7 @@ public class Valkyrie {
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
     }
 
-    private static void updateWorld(World world, Camera camera) {
+    private static void updateWorld(World world, Camera camera, GpuAllocator allocator) {
         final var worldSide = 8;
         final var worldHeight = 8;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
@@ -196,8 +260,10 @@ public class Valkyrie {
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
         world.getChunks().stream().toList().forEach(chunk -> {
             var position = chunk.getPosition();
-            if (Math.abs(position.x - cameraX) > worldSide/2 + 2 || Math.abs(position.z - cameraZ) > worldSide/2 + 2 || Math.abs(position.y - cameraY) > worldHeight/2 + 2)
+            if (Math.abs(position.x - cameraX) > worldSide/2 + 2 || Math.abs(position.z - cameraZ) > worldSide/2 + 2 || Math.abs(position.y - cameraY) > worldHeight/2 + 2) {
                 world.unloadChunk(position.x, position.y, position.z);
+                allocator.delete(chunk.getMesh());
+            }
         });
 
         for (int x = -worldSide/2; x <= worldSide/2; x++) {
