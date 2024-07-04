@@ -2,6 +2,7 @@ package me.lofienjoyer.valkyrie;
 
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+import org.joml.Vector4i;
 
 import java.util.*;
 
@@ -13,6 +14,8 @@ public class World {
     private final FastNoiseLite noise;
     private final Queue<LightNode> lightNodes;
     private final Queue<LightRemovalNode> lightRemovalNodes;
+    private final Queue<Vector4i> blocksToPlace;
+    private final Queue<Vector4i> lightsToPlace;
 
     public World() {
         this.chunks = new HashMap<>();
@@ -22,9 +25,21 @@ public class World {
         noise.SetFrequency(1 / 512f);
         this.lightNodes = new ArrayDeque<>();
         this.lightRemovalNodes = new ArrayDeque<>();
+        this.blocksToPlace = new ArrayDeque<>();
+        this.lightsToPlace = new ArrayDeque<>();
     }
 
     public void update() {
+        while (!blocksToPlace.isEmpty()) {
+            var data = blocksToPlace.poll();
+            setBlockInternal(data.x, data.y, data.z, data.w);
+        }
+
+        while (!lightsToPlace.isEmpty()) {
+            var data = lightsToPlace.poll();
+            setLightInternal(data.x, data.y, data.z, data.w);
+        }
+
         while (!lightRemovalNodes.isEmpty()) {
             var node = lightRemovalNodes.poll();
             var pos = node.index();
@@ -424,7 +439,7 @@ public class World {
         return new Vector3i((int)Math.floor(x / (float)CHUNK_SIDE), (int)Math.floor(y / (float)CHUNK_SIDE), (int)Math.floor(z / (float)CHUNK_SIDE));
     }
 
-    public void setBlock(int voxel, int x, int y, int z) {
+    private void setBlockInternal(int voxel, int x, int y, int z) {
         Vector3i position = getChunkPositionAt(x, y, z);
         var chunk = chunks.get(position);
         if (chunk == null || chunk.getData() == null) {
@@ -442,11 +457,15 @@ public class World {
         updateBlockNeighbors(position, blockX, blockY, blockZ);
     }
 
+    public void setBlock(int voxel, int x, int y, int z) {
+        blocksToPlace.add(new Vector4i(voxel, x, y, z));
+    }
+
     public void setBlock(int voxel, Vector3f position) {
         setBlock(voxel, (int)position.x, (int)position.y, (int)position.z);
     }
 
-    public void setLight(int light, int x, int y, int z) {
+    private void setLightInternal(int light, int x, int y, int z) {
         Vector3i position = getChunkPositionAt(x, y, z);
         var chunk = chunks.get(position);
         if (chunk == null || chunk.getData() == null) {
@@ -462,6 +481,10 @@ public class World {
         chunk.setDirty(true);
         chunk.setPriority(true);
         updateBlockNeighbors(position, blockX, blockY, blockZ);
+    }
+
+    public void setLight(int light, int x, int y, int z) {
+        lightsToPlace.add(new Vector4i(light, x, y, z));
     }
 
     public void setLight(int light, Vector3f position) {

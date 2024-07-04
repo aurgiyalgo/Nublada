@@ -118,6 +118,13 @@ public class Valkyrie {
 
         executorService = Executors.newFixedThreadPool(3);
         var world = new World();
+        var worldTimer = new Timer();
+        worldTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                world.update();
+            }
+        }, 0, 50);
 
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
@@ -141,8 +148,9 @@ public class Valkyrie {
         boolean wireframe = false;
         var random = new Random();
         var updateCamera = true;
-        var saturation = new float[] { 0.25f };
-        int tab = 0;
+        var saturation = new float[] { 0.5f };
+        var timeSpeed = new float[] { 0f };
+        var dayTime = 0f;
 
         while (!glfwWindowShouldClose(windowId)) {
             if (updateCamera) {
@@ -159,11 +167,10 @@ public class Valkyrie {
                     var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
                     if (position != null) {
                         world.setBlock(6, position);
-                        world.setLight(10, position);
+                        world.setLight(6, position);
                     }
                 }
             }
-            world.update();
 
             program.bind();
             program.setUniform("view", Camera.createViewMatrix(camera));
@@ -180,11 +187,12 @@ public class Valkyrie {
 
             glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
 
-            var dayTime = (float) Math.sin(glfwGetTime() * 0.0625);
-            glClearColor(0.125f * (dayTime * 0.8f + 0.2f), 0.5f * (dayTime * 0.8f + 0.2f), 0.75f * (dayTime * 0.8f + 0.2f), 1);
+            dayTime += delta * timeSpeed[0];
+            var worldTime = (float) (Math.sin(dayTime * Math.PI) + 1) / 2f;
+            glClearColor(0.125f * (worldTime * 0.9f), 0.5f * (worldTime * 0.9f), 0.75f * (worldTime * 0.9f), 1);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            program.setUniform("dayTime", dayTime);
+            program.setUniform("dayTime", worldTime);
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
@@ -222,6 +230,7 @@ public class Valkyrie {
 
             if (ImGui.beginTabItem("Params")) {
                 ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
+                ImGui.sliderFloat("Time speed", timeSpeed, 0f, 1f);
                 ImGui.endTabItem();
             }
 
@@ -252,6 +261,7 @@ public class Valkyrie {
 
         imGuiGl3.dispose();
         imGuiGlfw.dispose();
+        worldTimer.cancel();
         executorService.shutdownNow();
 
         glfwDestroyWindow(windowId);
