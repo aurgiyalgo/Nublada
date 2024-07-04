@@ -23,8 +23,12 @@ void main()
     float xUv = mod(outData.z, texturesPerSide) / texturesPerSide + mod(outData.x, 1.0) / texturesPerSide;
     float yUv = int(outData.z / texturesPerSide) / float(texturesPerSide) + mod(outData.y, 1.0) / texturesPerSide;
     vec4 color = texture(textureSampler, vec2(xUv, yUv));
+    if (color.a < 1.0) {
+        discard;
+    }
+    float light = dayTime * 16;
     float r = (int(passLight) >> 8) & 0xf;
     float g = (int(passLight) >> 4) & 0xf;
     float b = int(passLight) & 0xf;
-    FragColor = vec4(color.rgb * max(passLight / (8), dayTime * 0.8 + 0.2) * outData.a, 1.0);
+    FragColor = vec4((vec3(color.r * max(r + 1, light), color.g * max(g + 1, light), color.b * max(b + 1, light)) * outData.a / 16.0), 1.0);
 }

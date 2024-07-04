@@ -129,7 +129,7 @@ public class GreedyMesher {
                             voxelFace  = getBlock(x[0], x[1], x[2]);
                             voxelFace1 = getBlock((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2]));
 
-                            mask[n++] = ((voxelFace == 0 || voxelFace1 == 0))
+                            mask[n++] = (((voxelFace == 0 || voxelFace == 3) || (voxelFace1 == 0 || voxelFace1 == 3)))
                                     ? backFace ? voxelFace1 | (getLight(x[0], x[1], x[2]) << 4) : voxelFace | (getLight((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2])) << 4)
                                     : 0;
                         }

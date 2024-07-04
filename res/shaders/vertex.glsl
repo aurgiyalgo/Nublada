@@ -9,6 +9,8 @@ out float passLight;
 
 uniform mat4 proj;
 uniform mat4 view;
+uniform float dayTime;
+uniform float worldTime;
 
 layout(packed, binding = 0) buffer positionBuffer
 {
@@ -33,14 +35,23 @@ void main()
     int x = int(data >> 5);
     int y = int(data & 0x1fu) - 1;
     vec3 chunkPosition = getChunkPosition(gl_DrawID);
-    float offsetX = int((position.x >> 6) & 0x3fu) + chunkPosition.x * 32 - 1;
-    float offsetY = int(position.x & 0x3fu) + chunkPosition.y * 32 - 1;
-    float offsetZ = int((position.x >> 12) & 0x3fu) + chunkPosition.z * 32 - 1;
+    float positionX = int((position.x >> 6) & 0x3fu);
+    float positionY = int(position.x & 0x3fu);
+    float positionZ = int((position.x >> 12) & 0x3fu);
     int face = int((position.x >> 18) & 0x7u);
     int width = int((position.x >> 21) & 0x1fu) + 1;
     int height = int((position.x >> 26) & 0x1fu) + 1;
     int texture = int(position.y & 0xfu);
     int light = int(position.y >> 4) & 0xfff;
+    if (texture == 2) {
+        positionX += (sin((positionX + worldTime) * 60) + 1) / 64;
+        positionY += (sin((positionY + worldTime + 2) * 60) + 1) / 64;
+        positionZ += (sin((positionZ + worldTime + 5) * 60) + 1) / 64;
+    }
+
+    float offsetX = positionX + chunkPosition.x * 32 - 1;
+    float offsetY = positionY + chunkPosition.y * 32 - 1;
+    float offsetZ = positionZ + chunkPosition.z * 32 - 1;
 
     if (face == 0) {
         gl_Position = proj * view * vec4(x * width + offsetX, y * height + offsetY, offsetZ + 1, 1.0);

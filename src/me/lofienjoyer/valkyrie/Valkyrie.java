@@ -167,7 +167,7 @@ public class Valkyrie {
                     var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
                     if (position != null) {
                         world.setBlock(6, position);
-                        world.setLight(6, position);
+                        world.setLight(random.nextInt(0xfff + 1), position);
                     }
                 }
             }
@@ -193,6 +193,7 @@ public class Valkyrie {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             program.setUniform("dayTime", worldTime);
+            program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
