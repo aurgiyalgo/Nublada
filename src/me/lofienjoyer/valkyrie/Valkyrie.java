@@ -1,16 +1,13 @@
 package me.lofienjoyer.valkyrie;
 
 import imgui.ImGui;
-import imgui.flag.ImGuiInputTextFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import imgui.type.ImString;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,8 +20,14 @@ public class Valkyrie {
 
     private static int width = 1280, height = 720;
 
+    public static final Object lock = new Object();
+
+    public static List<Chunk> meshesToDelete = new ArrayList<>();
+    public static List<Chunk> chunksToRender = new ArrayList<>();
+    public static List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
+
     public static void main(String[] args) throws IOException {
-        final var vsync = 1;
+        final var vsync = 0;
         System.out.println("Vsync: " + (vsync == 1));
 
         final var shouldUseSsboRendering = shouldUseSsboRendering(args);
@@ -116,13 +119,16 @@ public class Valkyrie {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
 
+        var camera = new Camera();
+        program.setUniform("proj", Camera.createProjectionMatrix(width, height));
+
         executorService = Executors.newFixedThreadPool(3);
         var world = new World();
         var worldTimer = new Timer();
         worldTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                world.update();
+                world.update(camera);
             }
         }, 0, 50);
 
@@ -132,9 +138,6 @@ public class Valkyrie {
         long timer = System.nanoTime();
         long counter = 0;
         long frames = 0;
-
-        var camera = new Camera();
-        program.setUniform("proj", Camera.createProjectionMatrix(width, height));
 
         glfwSetWindowSizeCallback(windowId, (id, width, height) -> {
             Valkyrie.width = width;
@@ -175,10 +178,14 @@ public class Valkyrie {
             program.bind();
             program.setUniform("view", Camera.createViewMatrix(camera));
 
-            updateWorld(world, camera, allocator);
-            var chunks = world.getChunks();
-            checkFutures(chunks, allocator, world);
-            var drawLength = updateIndirectBuffer(chunks, indirectBuffer, chunkPositionBuffer);
+            // lock
+            List<Chunk> chunks;
+            int drawLength;
+            synchronized (lock) {
+                uploadMeshes(allocator);
+                deletePendingMeshes(allocator);
+                drawLength = updateIndirectBuffer(chunksToRender, indirectBuffer, chunkPositionBuffer);
+            }
 
             if (Input.isKeyJustPressed(GLFW_KEY_P))
                 wireframe = !wireframe;
@@ -226,6 +233,11 @@ public class Valkyrie {
                 ImGui.sameLine();
                 ImGui.progressBar((float) allocator.getFirstFreePosition() / (4 * 1024 * 1024 * Integer.BYTES));
                 ImGui.text(allocator.getFirstFreePosition() + " / " + (4 * 1024 * 1024 * Integer.BYTES));
+                synchronized (lock) {
+                    ImGui.text("Chunks rendered: " + chunksToRender.size());
+                    ImGui.text("Meshes to delete: " + meshesToDelete.size());
+                    ImGui.text("Meshes to update: " + meshesToUpdate.size());
+                }
                 ImGui.endTabItem();
             }
 
@@ -270,75 +282,23 @@ public class Valkyrie {
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
     }
 
-    private static void updateWorld(World world, Camera camera, GpuAllocator allocator) {
-        final var worldSide = 8;
-        final var worldHeight = 8;
-        var cameraX = (int)Math.floor(camera.getPosition().x / 32);
-        var cameraY = (int)Math.floor(camera.getPosition().y / 32);
-        var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
-        world.getChunks().stream().toList().forEach(chunk -> {
-            var position = chunk.getPosition();
-            if (Math.abs(position.x - cameraX) > worldSide/2 + 2 || Math.abs(position.z - cameraZ) > worldSide/2 + 2 || Math.abs(position.y - cameraY) > worldHeight/2 + 2) {
-                world.unloadChunk(position.x, position.y, position.z);
+    private static void deletePendingMeshes(GpuAllocator allocator) {
+        for (int i = 0; i < Math.min(meshesToDelete.size(), 10); i++) {
+            var chunk = meshesToDelete.removeFirst();
+            if (chunk.getMesh() != null)
                 allocator.delete(chunk.getMesh());
-            }
-        });
-
-        for (int x = -worldSide/2; x <= worldSide/2; x++) {
-            for (int z = -worldSide/2; z <= worldSide/2; z++) {
-                for (int y = -worldHeight/2; y <= worldHeight/2; y++) {
-                    var chunkX = cameraX - x;
-                    var chunkY = cameraY - y;
-                    var chunkZ = cameraZ - z;
-                    var chunk = world.getChunk(chunkX, chunkY, chunkZ);
-                    if (chunk == null)
-                        world.loadChunk(chunkX, chunkY, chunkZ);
-                }
-            }
         }
-//        var chunkCount = worldSide * worldSide * worldHeight;
-//        for (int i = 0; i < chunkCount; i++) {
-//            world.loadChunk((i / worldSide) % worldSide - worldSide / 2, i / (worldSide * worldSide), i % worldSide - worldSide / 2);
-//        }
     }
 
-    private static void checkFutures(Collection<Chunk> chunks, GpuAllocator allocator, World world) {
-        chunks.forEach(chunk -> {
-            if (chunk.isDirty()) {
-                if (!chunk.isPriority()) {
-                    chunk.getFutures().forEach(future -> future.cancel(true));
-                    chunk.getFutures().clear();
-                }
-                chunk.getFutures().add(executorService.submit(() -> {
-                    return new GreedyMesher(chunk, chunk.getWorld()).compute();
-                }));
-                chunk.setDirty(false);
+    private static void uploadMeshes(GpuAllocator allocator) {
+        for (int i = 0; i < Math.min(meshesToUpdate.size(), 2); i++) {
+            var meshToUpdate = meshesToUpdate.removeFirst();
+            var mesh = meshToUpdate.chunk().getMesh();
+            if (mesh == null) {
+                meshToUpdate.chunk().setMesh(allocator.store(meshToUpdate.data()));
+            } else {
+                allocator.update(mesh, meshToUpdate.data());
             }
-
-            var futures = chunk.getFutures();
-            if (futures.isEmpty())
-                return;
-
-            var firstFuture = chunk.getFutures().getFirst();
-            if (!firstFuture.isDone())
-                return;
-
-            try {
-                var positionsList = firstFuture.get();
-                updateChunkMesh(allocator, chunk, positionsList);
-                futures.removeFirst();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    private static void updateChunkMesh(GpuAllocator allocator, Chunk chunk, List<Integer> positionsList) {
-        var chunkMesh = chunk.getMesh();
-        if (chunkMesh == null) {
-            chunk.setMesh(allocator.store(integerListToArray(positionsList)));
-        } else {
-            allocator.update(chunkMesh, integerListToArray(positionsList));
         }
     }
 
@@ -380,7 +340,7 @@ public class Valkyrie {
         return indirectCmds.length / 4;
     }
 
-    private static int[] integerListToArray(List<Integer> list) {
+    public static int[] integerListToArray(List<Integer> list) {
         int[] data = new int[list.size()];
         for (int i = 0; i < list.size(); i++) {
             data[i] = list.get(i);

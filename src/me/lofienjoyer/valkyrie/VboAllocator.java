@@ -61,12 +61,14 @@ public class VboAllocator implements GpuAllocator {
                 size
         );
 
+        long uTimer = System.nanoTime();
         instances.forEach(mesh -> {
             if (mesh.getIndex() < instanceToRemove.getIndex())
                 return;
 
             mesh.setIndex(mesh.getIndex() - instanceToRemove.getLength() * Integer.BYTES * 2);
         });
+        System.out.println((System.nanoTime() - uTimer) / 1000000f);
 
         firstFreePosition -= instanceToRemove.getLength() * Integer.BYTES * 2;
     }

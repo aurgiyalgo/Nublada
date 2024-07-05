@@ -5,6 +5,7 @@ import org.joml.Vector3i;
 import org.joml.Vector4i;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 
 public class World {
 
@@ -37,7 +38,7 @@ public class World {
         this.lightsToPlace = new ArrayDeque<>();
     }
 
-    public void update() {
+    public void update(Camera camera) {
         while (!blocksToPlace.isEmpty()) {
             var data = blocksToPlace.poll();
             setBlockInternal(data.x, data.y, data.z, data.w);
@@ -55,6 +56,72 @@ public class World {
         LightManager.propagateRed(this, redLightNodes);
         LightManager.propagateGreen(this, greenLightNodes);
         LightManager.propagateBlue(this, blueLightNodes);
+
+        final var worldSide = 16;
+        final var worldHeight = 8;
+        var cameraX = (int)Math.floor(camera.getPosition().x / 32);
+        var cameraY = (int)Math.floor(camera.getPosition().y / 32);
+        var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
+        var meshesToDelete = new ArrayList<Chunk>();
+        var meshesToUpdate = new ArrayList<MeshToUpdate>();
+        getChunks().stream().toList().forEach(chunk -> {
+            var position = chunk.getPosition();
+            if (Math.abs(position.x - cameraX) > worldSide/2 + 2 || Math.abs(position.z - cameraZ) > worldSide/2 + 2 || Math.abs(position.y - cameraY) > worldHeight/2 + 2) {
+                unloadChunk(position.x, position.y, position.z);
+                meshesToDelete.add(chunk);
+                return;
+            }
+
+            if (chunk.isDirty()) {
+                if (!chunk.isPriority()) {
+                    chunk.getFutures().forEach(future -> future.cancel(true));
+                    chunk.getFutures().clear();
+                }
+                chunk.getFutures().add(Valkyrie.executorService.submit(() -> {
+                    return new GreedyMesher(chunk, chunk.getWorld()).compute();
+                }));
+                chunk.setDirty(false);
+            }
+
+            var futures = chunk.getFutures();
+            if (futures.isEmpty())
+                return;
+
+            var firstFuture = chunk.getFutures().getFirst();
+            if (!firstFuture.isDone())
+                return;
+
+            try {
+                meshesToUpdate.add(new MeshToUpdate(chunk, Valkyrie.integerListToArray(firstFuture.get())));
+                futures.removeFirst();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        var chunksToRender = new ArrayList<Chunk>();
+        for (int x = -worldSide/2; x <= worldSide/2; x++) {
+            for (int z = -worldSide/2; z <= worldSide/2; z++) {
+                for (int y = -worldHeight/2; y <= worldHeight/2; y++) {
+                    var chunkX = cameraX - x;
+                    var chunkY = cameraY - y;
+                    var chunkZ = cameraZ - z;
+                    var chunk = getChunk(chunkX, chunkY, chunkZ);
+                    if (chunk == null) {
+                        loadChunk(chunkX, chunkY, chunkZ);
+                        continue;
+                    }
+
+                    chunksToRender.add(chunk);
+                }
+            }
+        }
+
+        synchronized (Valkyrie.lock) {
+            Valkyrie.meshesToDelete.addAll(meshesToDelete);
+            Valkyrie.chunksToRender = chunksToRender;
+            Valkyrie.meshesToUpdate.addAll(meshesToUpdate);
+        }
     }
 
     public void loadChunk(int chunkX, int chunkY, int chunkZ) {
