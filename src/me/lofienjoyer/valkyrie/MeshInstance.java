@@ -4,6 +4,7 @@ public class MeshInstance {
 
     private int length;
     private int index;
+    private int id;
 
     public MeshInstance(int length, int index) {
         this.length = length;
@@ -24,6 +25,14 @@ public class MeshInstance {
 
     public void setIndex(int index) {
         this.index = index;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
 }

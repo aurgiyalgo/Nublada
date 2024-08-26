@@ -145,9 +145,12 @@ public class World {
                         } else {
                             chunk.setBlock(x, y, z, 1);
                         }
+
+                        if (noise.GetNoise((chunkX * 32 + x) * 8, (chunkY * 32 + y) * 8, (chunkZ * 32 + z) * 8) < -0.5)
+                            chunk.setBlock(x, y, z, 0);
                     }
 
-                    if (localMax > 0 && random.nextInt(60) == 0 && localMax + 7 < 32 && x < 31 && x > 1 && z < 31 && z > 1) {
+                    if (localMax > 0 && chunk.getBlock(x, (int) localMax, z) != 0 && random.nextInt(60) == 0 && localMax + 7 < 32 && x < 31 && x > 1 && z < 31 && z > 1) {
                         for (int i = 0; i < 4; i++) {
                             chunk.setBlock(x, (int) (localMax + i + 1), z, 4);
                         }

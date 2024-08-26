@@ -27,7 +27,7 @@ public class Valkyrie {
     public static List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
-        final var vsync = 0;
+        final var vsync = 1;
         System.out.println("Vsync: " + (vsync == 1));
 
         final var shouldUseSsboRendering = shouldUseSsboRendering(args);
@@ -101,11 +101,12 @@ public class Valkyrie {
         GpuAllocator allocator;
         ShaderProgram program;
         if (shouldUseSsboRendering) {
-            allocator = new SsboAllocator(1, 4);
-            program = new ShaderProgram("vertexSSBO.glsl", "fragment.glsl");
+            throw new RuntimeException("SSBO rendering not supported.");
+//            allocator = new SsboAllocator(1, 4);
+//            program = new ShaderProgram("vertexSSBO.glsl", "fragment.glsl");
         } else {
             program = new ShaderProgram("vertex.glsl", "fragment.glsl");
-            allocator = new VboAllocator(vaoId, 4);
+            allocator = new VboAllocator(vaoId, 16 * 1024 * 1024);
         }
         program.bind();
 
@@ -179,11 +180,13 @@ public class Valkyrie {
             program.setUniform("view", Camera.createViewMatrix(camera));
 
             // lock
-            List<Chunk> chunks;
             int drawLength;
             synchronized (lock) {
                 uploadMeshes(allocator);
                 deletePendingMeshes(allocator);
+                for (int i = 0; i < 16; i++) {
+                    allocator.optimizeBuffer();
+                }
                 drawLength = updateIndirectBuffer(chunksToRender, indirectBuffer, chunkPositionBuffer);
             }
 
@@ -227,12 +230,15 @@ public class Valkyrie {
             ImGui.beginTabBar("tabs");
 
             if (ImGui.beginTabItem("Data")) {
-                ImGui.text("FPS: " + 1 / ((System.nanoTime() - timer) / 1000000000f));
-                ImGui.text("Frame time: " + (System.nanoTime() - timer) / 1000000000f);
+                ImGui.text("FPS: " + 1 / delta);
+                ImGui.text("Frame time: " + delta);
+                ImGui.text(String.format("X: %.2f", camera.getPosition().x));
+                ImGui.text(String.format("Y: %.2f", camera.getPosition().y));
+                ImGui.text(String.format("Z: %.2f", camera.getPosition().z));
                 ImGui.text("Chunk meshes");
                 ImGui.sameLine();
-                ImGui.progressBar((float) allocator.getFirstFreePosition() / (4 * 1024 * 1024 * Integer.BYTES));
-                ImGui.text(allocator.getFirstFreePosition() + " / " + (4 * 1024 * 1024 * Integer.BYTES));
+                ImGui.progressBar((float) allocator.getFirstFreePosition() / allocator.getSizeInBytes());
+                ImGui.text(allocator.getFirstFreePosition() + " / " + allocator.getSizeInBytes());
                 synchronized (lock) {
                     ImGui.text("Chunks rendered: " + chunksToRender.size());
                     ImGui.text("Meshes to delete: " + meshesToDelete.size());
@@ -283,7 +289,10 @@ public class Valkyrie {
     }
 
     private static void deletePendingMeshes(GpuAllocator allocator) {
-        for (int i = 0; i < Math.min(meshesToDelete.size(), 10); i++) {
+        if (meshesToDelete.isEmpty())
+            return;
+
+        for (int i = 0; i < Math.min(meshesToDelete.size(), 32); i++) {
             var chunk = meshesToDelete.removeFirst();
             if (chunk.getMesh() != null)
                 allocator.delete(chunk.getMesh());
@@ -291,11 +300,11 @@ public class Valkyrie {
     }
 
     private static void uploadMeshes(GpuAllocator allocator) {
-        for (int i = 0; i < Math.min(meshesToUpdate.size(), 2); i++) {
+        for (int i = 0; i < Math.min(meshesToUpdate.size(), 32); i++) {
             var meshToUpdate = meshesToUpdate.removeFirst();
             var mesh = meshToUpdate.chunk().getMesh();
             if (mesh == null) {
-                meshToUpdate.chunk().setMesh(allocator.store(meshToUpdate.data()));
+                meshToUpdate.chunk().setMesh(allocator.store(new MeshInstance(0, 0), meshToUpdate.data()));
             } else {
                 allocator.update(mesh, meshToUpdate.data());
             }
@@ -350,14 +359,6 @@ public class Valkyrie {
 
     private static int getData(int x, int y) {
         return x << 5 | y;
-    }
-
-    private static int getData(int x, int y, int z) {
-        return z << 14 | x << 7 | y;
-    }
-
-    private static void toPosition(int data) {
-        System.out.println(((data >> 7) & 0x1f) + " " + (data & 0x1f) + " " + ((data >> 14) & 0x1f));
     }
 
     private static boolean shouldUseSsboRendering(String[] args) {

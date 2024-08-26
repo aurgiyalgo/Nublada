@@ -1,91 +1,185 @@
 package me.lofienjoyer.valkyrie;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.lwjgl.opengl.GL46.*;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_INT;
+import static org.lwjgl.opengl.GL15.*;
+import static org.lwjgl.opengl.GL15.GL_DYNAMIC_DRAW;
+import static org.lwjgl.opengl.GL20.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL30.glBindVertexArray;
+import static org.lwjgl.opengl.GL30.glVertexAttribIPointer;
+import static org.lwjgl.opengl.GL31.*;
+import static org.lwjgl.opengl.GL43.glVertexBindingDivisor;
 
-public class VboAllocator implements GpuAllocator {
+public class VboAllocator implements GpuAllocator{
 
-    private final int vbo;
-    private final int auxVbo;
-    private int firstFreePosition;
-    private final List<MeshInstance> instances;
+    public static final AtomicInteger idCounter = new AtomicInteger(1);
 
-    public VboAllocator(int vao, int sizeInMiB) {
+    private static final int WORD_SIZE = 1024;
+
+    private final int vboId;
+    private final int auxVboId;
+    private final int[] allocatorData;
+    private final long sizeInBytes;
+    private final Map<Integer, MeshInstance> instances;
+    private int firstFreePosition = 0;
+
+    public VboAllocator(int vao, long sizeInBytes) {
+        this.allocatorData = new int[(int) (sizeInBytes / WORD_SIZE)];
+        this.sizeInBytes = sizeInBytes;
+        this.instances = new HashMap<>();
+
         glBindVertexArray(vao);
-        this.vbo = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeInMiB * 1024 * 1024 * Integer.BYTES, GL_DYNAMIC_DRAW);
+        this.vboId = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, sizeInBytes, GL_DYNAMIC_DRAW);
         glEnableVertexAttribArray(1);
         glVertexAttribIPointer(1, 2, GL_UNSIGNED_INT, 0, 0);
         glVertexBindingDivisor(1, 1);
 
-        this.auxVbo = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, auxVbo);
-
-        this.instances = new ArrayList<>();
+        this.auxVboId = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, auxVboId);
     }
 
-    public MeshInstance store(int[] data) {
-        var instance = new MeshInstance(data.length / 2, firstFreePosition);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferSubData(GL_ARRAY_BUFFER, firstFreePosition, data);
-        firstFreePosition += data.length * Integer.BYTES;
-        instances.add(instance);
-        return instance;
+    @Override
+    public MeshInstance store(MeshInstance mesh, int[] dataToAllocate) {
+        if (dataToAllocate.length == 0) {
+            mesh.setIndex(0);
+            mesh.setLength(0);
+            return mesh;
+        }
+
+        int blocksNeeded = ((dataToAllocate.length * Integer.BYTES) / WORD_SIZE) + 1;
+
+        for (int i = firstFreePosition; i < firstFreePosition + blocksNeeded; i++) {
+            if (allocatorData[i] != 0)
+                continue;
+
+            boolean isCurrentIndexValid = true;
+
+            for (int j = 0; j < blocksNeeded; j++) {
+                if (allocatorData[i + j] != 0) {
+                    isCurrentIndexValid = false;
+                    break;
+                }
+            }
+
+            if (!isCurrentIndexValid)
+                continue;
+
+            if (mesh.getId() == 0) {
+                mesh.setId(idCounter.incrementAndGet());
+                instances.put(mesh.getId(), mesh);
+            }
+
+            mesh.setLength(dataToAllocate.length / 2);
+            mesh.setIndex(i * WORD_SIZE);
+            for (int j = 0; j < blocksNeeded; j++) {
+                allocatorData[i + j] = mesh.getId();
+            }
+
+            glBindBuffer(GL_ARRAY_BUFFER, vboId);
+            glBufferSubData(GL_ARRAY_BUFFER, mesh.getIndex(), dataToAllocate);
+            firstFreePosition += blocksNeeded;
+
+            return mesh;
+        }
+
+        throw new RuntimeException("Buffer is full!");
     }
 
+    @Override
     public void delete(MeshInstance instanceToRemove) {
-        instances.remove(instanceToRemove);
-        var size = firstFreePosition - (instanceToRemove.getIndex() + instanceToRemove.getLength() * Integer.BYTES * 2);
-        glBindBuffer(GL_ARRAY_BUFFER, auxVbo);
-        glBufferData(GL_ARRAY_BUFFER, size, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_COPY_READ_BUFFER, vbo);
-        glBindBuffer(GL_COPY_WRITE_BUFFER, auxVbo);
-        glCopyBufferSubData(
-                GL_COPY_READ_BUFFER,
-                GL_COPY_WRITE_BUFFER,
-                instanceToRemove.getIndex() + instanceToRemove.getLength() * Integer.BYTES * 2,
-                0,
-                size
-        );
+        if (instanceToRemove.getLength() == 0)
+            return;
 
-        glBindBuffer(GL_COPY_READ_BUFFER, auxVbo);
-        glBindBuffer(GL_COPY_WRITE_BUFFER, vbo);
-        glCopyBufferSubData(
-                GL_COPY_READ_BUFFER,
-                GL_COPY_WRITE_BUFFER,
-                0,
-                instanceToRemove.getIndex(),
-                size
-        );
+        var index = instanceToRemove.getIndex() / WORD_SIZE;
+        var size = (instanceToRemove.getLength() * 2 * Integer.BYTES) / WORD_SIZE + 1;
+        for (int i = index; i < index + size; i++) {
+            allocatorData[i] = 0;
+        }
+        instances.remove(instanceToRemove.getId());
+        instanceToRemove.setId(0);
+    }
 
-        long uTimer = System.nanoTime();
-        instances.forEach(mesh -> {
-            if (mesh.getIndex() < instanceToRemove.getIndex())
-                return;
+    @Override
+    public void optimizeBuffer() {
+        int firstEmptyIndex = 0;
 
-            mesh.setIndex(mesh.getIndex() - instanceToRemove.getLength() * Integer.BYTES * 2);
-        });
-        System.out.println((System.nanoTime() - uTimer) / 1000000f);
+        for (int i = 0; i < allocatorData.length; i++) {
+            if (allocatorData[i] != 0)
+                continue;
 
-        firstFreePosition -= instanceToRemove.getLength() * Integer.BYTES * 2;
+            firstEmptyIndex = i;
+
+            int firstPopulatedIndex = getFirstPopulatedIndexAfter(i);
+            if (firstPopulatedIndex == -1) {
+                firstFreePosition = firstEmptyIndex;
+                break;
+            }
+
+            int dataFound = allocatorData[firstPopulatedIndex];
+            int dataLength = (instances.get(dataFound).getLength() * 2 * Integer.BYTES) / WORD_SIZE + 1;
+
+            for (int j = firstPopulatedIndex; j < dataLength + firstPopulatedIndex; j++) {
+                allocatorData[j] = 0;
+            }
+
+            for (int j = firstEmptyIndex; j < dataLength + firstEmptyIndex; j++) {
+                allocatorData[j] = dataFound;
+            }
+
+            var mesh = instances.get(dataFound);
+            glBindBuffer(GL_ARRAY_BUFFER, auxVboId);
+            glBufferData(GL_ARRAY_BUFFER, mesh.getLength() * 2 * Integer.BYTES, GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_COPY_READ_BUFFER, vboId);
+            glBindBuffer(GL_COPY_WRITE_BUFFER, auxVboId);
+            glCopyBufferSubData(
+                    GL_COPY_READ_BUFFER,
+                    GL_COPY_WRITE_BUFFER,
+                    mesh.getIndex(),
+                    0,
+                    mesh.getLength() * 2 * Integer.BYTES
+            );
+
+            glBindBuffer(GL_COPY_READ_BUFFER, auxVboId);
+            glBindBuffer(GL_COPY_WRITE_BUFFER, vboId);
+            glCopyBufferSubData(
+                    GL_COPY_READ_BUFFER,
+                    GL_COPY_WRITE_BUFFER,
+                    0,
+                    firstEmptyIndex * WORD_SIZE,
+                    mesh.getLength() * 2 * Integer.BYTES
+            );
+
+            mesh.setIndex(firstEmptyIndex * WORD_SIZE);
+
+            break;
+        }
     }
 
     @Override
     public void update(MeshInstance instance, int[] data) {
         delete(instance);
-        instance.setLength(data.length / 2);
-        instance.setIndex(firstFreePosition);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferSubData(GL_ARRAY_BUFFER, firstFreePosition, data);
-        firstFreePosition += data.length * Integer.BYTES;
-        instances.add(instance);
+        store(instance, data);
+    }
+
+    private int getFirstPopulatedIndexAfter(int index) {
+        for (int i = index; i < allocatorData.length; i++) {
+            if (allocatorData[i] != 0)
+                return i;
+        }
+        return -1;
+    }
+
+    @Override
+    public long getSizeInBytes() {
+        return sizeInBytes;
     }
 
     public int getFirstFreePosition() {
-        return firstFreePosition;
+        return firstFreePosition * WORD_SIZE;
     }
 
 }
