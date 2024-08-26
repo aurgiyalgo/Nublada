@@ -26,9 +26,9 @@ void main()
     if (color.a < 1.0) {
         discard;
     }
-    float light = dayTime * 16;
-    float r = (int(passLight) >> 8) & 0xf;
-    float g = (int(passLight) >> 4) & 0xf;
-    float b = int(passLight) & 0xf;
-    FragColor = vec4((vec3(color.r * max(r + 1, light), color.g * max(g + 1, light), color.b * max(b + 1, light)) * outData.a / 16.0), 1.0);
+    float r = ((int(passLight) >> 8) & 0xf) + 1;
+    float g = ((int(passLight) >> 4) & 0xf) + 1;
+    float b = (int(passLight) & 0xf) + 1;
+    float s = max(dayTime, 0.25f) * 8;
+    FragColor = vec4((vec3(color.r * max(r, s), color.g * max(g, s), color.b * max(b, s)) * outData.a / 8.0), 1.0);
 }
