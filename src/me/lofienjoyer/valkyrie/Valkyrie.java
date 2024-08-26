@@ -184,9 +184,7 @@ public class Valkyrie {
             synchronized (lock) {
                 uploadMeshes(allocator);
                 deletePendingMeshes(allocator);
-                for (int i = 0; i < 16; i++) {
-                    allocator.optimizeBuffer();
-                }
+                allocator.optimizeBuffer(32);
                 drawLength = updateIndirectBuffer(chunksToRender, indirectBuffer, chunkPositionBuffer);
             }
 

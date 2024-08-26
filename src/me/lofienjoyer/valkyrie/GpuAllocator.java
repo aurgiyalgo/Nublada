@@ -8,7 +8,7 @@ public interface GpuAllocator {
 
     void update(MeshInstance instance, int[] data);
 
-    void optimizeBuffer();
+    void optimizeBuffer(int amount);
 
     long getSizeInBytes();
 

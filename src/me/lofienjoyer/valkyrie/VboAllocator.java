@@ -104,8 +104,9 @@ public class VboAllocator implements GpuAllocator{
     }
 
     @Override
-    public void optimizeBuffer() {
+    public void optimizeBuffer(int amount) {
         int firstEmptyIndex = 0;
+        int optimizedMeshes = 0;
 
         for (int i = 0; i < allocatorData.length; i++) {
             if (allocatorData[i] != 0)
@@ -155,7 +156,9 @@ public class VboAllocator implements GpuAllocator{
 
             mesh.setIndex(firstEmptyIndex * WORD_SIZE);
 
-            break;
+            optimizedMeshes++;
+            if (optimizedMeshes == amount)
+                break;
         }
     }
 
