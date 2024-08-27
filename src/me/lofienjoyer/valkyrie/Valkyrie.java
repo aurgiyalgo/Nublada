@@ -3,6 +3,7 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import org.joml.Math;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
@@ -27,8 +28,11 @@ public class Valkyrie {
     public static List<Chunk> chunksToRender = new ArrayList<>();
     public static List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
 
+    public static int drawLength;
+    public static int shadowDrawLength;
+
     public static void main(String[] args) throws IOException {
-        final var vsync = 1;
+        final var vsync = 0;
         System.out.println("Vsync: " + (vsync == 1));
 
         final var shouldUseSsboRendering = shouldUseSsboRendering(args);
@@ -110,7 +114,7 @@ public class Valkyrie {
         } else {
             program = new ShaderProgram("vertex.glsl", "fragment.glsl");
             shadowProgram = new ShaderProgram("shadowVertex.glsl", "shadowFragment.glsl");
-            allocator = new VboAllocator(vaoId, 16 * 1024 * 1024);
+            allocator = new VboAllocator(vaoId, 64 * 1024 * 1024);
         }
 
         var texture = new Texture("res/textures/blocks/tiles.png");
@@ -123,6 +127,13 @@ public class Valkyrie {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
 
+        int shadowIndirectBuffer = glGenBuffers();
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
+
+        int shadowChunkPositionBuffer = glGenBuffers();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionBuffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowChunkPositionBuffer);
+
         var camera = new Camera();
         program.bind();
         program.setUniform("proj", Camera.createProjectionMatrix(width, height));
@@ -130,7 +141,7 @@ public class Valkyrie {
         var shadowCamera = new Camera();
         shadowCamera.setPosition(new Vector3f(0, 200, 0));
         shadowProgram.bind();
-        shadowProgram.setUniform("proj", Camera.createOrthoProjectionMatrix(256));
+        shadowProgram.setUniform("proj", Camera.createOrthoProjectionMatrix(128));
 
         executorService = Executors.newFixedThreadPool(3);
         var world = new World();
@@ -187,12 +198,11 @@ public class Valkyrie {
             }
 
             // lock
-            int drawLength;
             synchronized (lock) {
                 uploadMeshes(allocator);
                 deletePendingMeshes(allocator);
                 allocator.optimizeBuffer(32);
-                drawLength = updateIndirectBuffer(chunksToRender, indirectBuffer, chunkPositionBuffer);
+                updateIndirectBuffer(chunksToRender, new Vector3i((int) (camera.getPosition().x / 32), 0, (int) (camera.getPosition().z / 32)), indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer, shadowChunkPositionBuffer);
             }
 
             if (Input.isKeyJustPressed(GLFW_KEY_P))
@@ -207,7 +217,7 @@ public class Valkyrie {
             glClearColor(0.125f * (worldTime * 0.9f), 0.5f * (worldTime * 0.9f), 0.75f * (worldTime * 0.9f), 1);
 
             // Shadow pass
-            glViewport(0, 0, 1024, 1024);
+            glViewport(0, 0, 512, 512);
             glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
             glClear(GL_DEPTH_BUFFER_BIT);
             shadowCamera.setPosition(camera.getPosition());
@@ -220,7 +230,10 @@ public class Valkyrie {
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
             glBindBuffer(GL_ARRAY_BUFFER, vboId);
-            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowChunkPositionBuffer);
+            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, shadowDrawLength, 0);
 
             // Color pass
             glViewport(0, 0, width, height);
@@ -229,7 +242,7 @@ public class Valkyrie {
             program.bind();
             program.setUniform("view", Camera.createViewMatrix(camera));
             program.setUniform("shadowView", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
-            program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(256));
+            program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(128));
             program.setUniform("lightPos", shadowCamera.getPosition());
             program.setUniform("camPos", camera.getPosition());
             program.setUniform("dayTime", worldTime);
@@ -241,6 +254,9 @@ public class Valkyrie {
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
             glBindBuffer(GL_ARRAY_BUFFER, vboId);
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
             glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
 
             glActiveTexture(GL_TEXTURE0);
@@ -323,10 +339,6 @@ public class Valkyrie {
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
     }
 
-    private static void setupMatrices() {
-
-    }
-
     private static void deletePendingMeshes(GpuAllocator allocator) {
         if (meshesToDelete.isEmpty())
             return;
@@ -350,9 +362,11 @@ public class Valkyrie {
         }
     }
 
-    private static int updateIndirectBuffer(Collection<Chunk> chunks, int indirectBuffer, int chunkPositionBuffer) {
+    private static int updateIndirectBuffer(Collection<Chunk> chunks, Vector3i camPos, int indirectBuffer, int chunkPositionBuffer, int shadowIndirectBuffer, int shadowChunkPositionBuffer) {
         var indirectCmdsList = new ArrayList<Integer>();
         var chunkPositions = new ArrayList<Vector3i>();
+        var shadowIndirectCmdsList = new ArrayList<Integer>();
+        var shadowChunkPositions = new ArrayList<Vector3i>();
         for (Chunk chunk : chunks) {
             var mesh = chunk.getMesh();
             if (mesh == null)
@@ -364,6 +378,14 @@ public class Valkyrie {
             indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
             var position = chunk.getPosition();
             chunkPositions.add(position);
+            if (chunk.getPosition().x > camPos.x + 2 || chunk.getPosition().x < camPos.x - 2 || chunk.getPosition().z > camPos.z + 2 || chunk.getPosition().z < camPos.z - 2)
+                continue;
+
+            shadowIndirectCmdsList.add(3);
+            shadowIndirectCmdsList.add(mesh.getLength());
+            shadowIndirectCmdsList.add(0);
+            shadowIndirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
+            shadowChunkPositions.add(position);
         }
 
         int[] chunkPositionsArray = new int[chunkPositions.size() * 3];
@@ -372,6 +394,19 @@ public class Valkyrie {
             chunkPositionsArray[i * 3] = position.x;
             chunkPositionsArray[i * 3 + 1] = position.y;
             chunkPositionsArray[i * 3 + 2] = position.z;
+        }
+
+        int[] shadowChunkPositionsArray = new int[shadowChunkPositions.size() * 3];
+        for (int i = 0; i < shadowChunkPositions.size(); i++) {
+            var position = shadowChunkPositions.get(i);
+            shadowChunkPositionsArray[i * 3] = position.x;
+            shadowChunkPositionsArray[i * 3 + 1] = position.y;
+            shadowChunkPositionsArray[i * 3 + 2] = position.z;
+        }
+
+        int[] shadowIndirectCmds = new int[shadowIndirectCmdsList.size()];
+        for (int i = 0; i < shadowIndirectCmdsList.size(); i++) {
+            shadowIndirectCmds[i] = shadowIndirectCmdsList.get(i);
         }
 
         int[] indirectCmds = new int[indirectCmdsList.size()];
@@ -385,6 +420,14 @@ public class Valkyrie {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, chunkPositionsArray, GL_DYNAMIC_DRAW);
 
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, shadowIndirectCmds, GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionsArray, GL_DYNAMIC_DRAW);
+
+        drawLength = indirectCmds.length / 4;
+        shadowDrawLength = shadowIndirectCmds.length / 4;
         return indirectCmds.length / 4;
     }
 

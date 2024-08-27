@@ -46,7 +46,7 @@ float calculateShadow(vec4 fragPosLightSpace, vec3 fragPos) {
 
     float bias = max(0.05 * (1.0 - dotProduct), 0.0075);
     float shadow = 0.0;
-    vec2 texelSize = vec2(1 / 1024.0, 1 / 1024.0);
+    vec2 texelSize = vec2(1 / 512.0, 1 / 512.0);
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
@@ -72,6 +72,6 @@ void main()
     if (color.a < 1.0) {
         discard;
     }
-    float s = max((1 - calculateShadow(fs_in.FragPosLightSpace, fs_in.FragPos)) * dayTime, 0.25);
+    float s = max((1 - calculateShadow(fs_in.FragPosLightSpace, fs_in.FragPos)) * dayTime, dayTime * 0.25 + 0.25);
     FragColor = vec4((vec3(color.r * max(passLight.r, s), color.g * max(passLight.g, s), color.b * max(passLight.b, s)) * outData.a), 1.0);
 }
