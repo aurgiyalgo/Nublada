@@ -3,6 +3,7 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
 
@@ -83,6 +84,7 @@ public class Valkyrie {
         var fboProgram = new ShaderProgram("fboVertex.glsl", "fboFragment.glsl");
 
         var fbo = new Framebuffer(width, height);
+        var shadowFbo = new DepthFramebuffer();
 
         int[] data = {
                 getData(0, 0),
@@ -100,15 +102,16 @@ public class Valkyrie {
 
         GpuAllocator allocator;
         ShaderProgram program;
+        ShaderProgram shadowProgram;
         if (shouldUseSsboRendering) {
             throw new RuntimeException("SSBO rendering not supported.");
 //            allocator = new SsboAllocator(1, 4);
 //            program = new ShaderProgram("vertexSSBO.glsl", "fragment.glsl");
         } else {
             program = new ShaderProgram("vertex.glsl", "fragment.glsl");
+            shadowProgram = new ShaderProgram("shadowVertex.glsl", "shadowFragment.glsl");
             allocator = new VboAllocator(vaoId, 16 * 1024 * 1024);
         }
-        program.bind();
 
         var texture = new Texture("res/textures/blocks/tiles.png");
         glBindTexture(GL_TEXTURE_2D, texture.getId());
@@ -121,7 +124,13 @@ public class Valkyrie {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
 
         var camera = new Camera();
+        program.bind();
         program.setUniform("proj", Camera.createProjectionMatrix(width, height));
+
+        var shadowCamera = new Camera();
+        shadowCamera.setPosition(new Vector3f(0, 200, 0));
+        shadowProgram.bind();
+        shadowProgram.setUniform("proj", Camera.createOrthoProjectionMatrix(256));
 
         executorService = Executors.newFixedThreadPool(3);
         var world = new World();
@@ -144,6 +153,7 @@ public class Valkyrie {
             Valkyrie.width = width;
             Valkyrie.height = height;
             glViewport(0, 0, width, height);
+            program.bind();
             program.setUniform("proj", Camera.createProjectionMatrix(width, height));
             fbo.resize(width, height);
         });
@@ -176,9 +186,6 @@ public class Valkyrie {
                 }
             }
 
-            program.bind();
-            program.setUniform("view", Camera.createViewMatrix(camera));
-
             // lock
             int drawLength;
             synchronized (lock) {
@@ -198,16 +205,45 @@ public class Valkyrie {
             dayTime += delta * timeSpeed[0];
             var worldTime = (float) (Math.sin(dayTime * Math.PI) + 1) / 2f;
             glClearColor(0.125f * (worldTime * 0.9f), 0.5f * (worldTime * 0.9f), 0.75f * (worldTime * 0.9f), 1);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            program.setUniform("dayTime", worldTime);
-            program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
+            // Shadow pass
+            glViewport(0, 0, 1024, 1024);
+            glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
+            glClear(GL_DEPTH_BUFFER_BIT);
+            shadowCamera.setPosition(camera.getPosition());
+//            shadowCamera.getPosition().x += 16;
+            shadowCamera.getPosition().y += 64;
+            shadowCamera.getPosition().z += 64 * (worldTime * 2 - 1);
+            shadowProgram.bind();
+            shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
             glBindBuffer(GL_ARRAY_BUFFER, vboId);
             glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
 
+            // Color pass
+            glViewport(0, 0, width, height);
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            program.bind();
+            program.setUniform("view", Camera.createViewMatrix(camera));
+            program.setUniform("shadowView", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
+            program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(256));
+            program.setUniform("lightPos", shadowCamera.getPosition());
+            program.setUniform("camPos", camera.getPosition());
+            program.setUniform("dayTime", worldTime);
+            program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture.getId());
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, shadowFbo.getDepthTextureId());
+            glEnable(GL_DEPTH_TEST);
+            glBindVertexArray(vaoId);
+            glBindBuffer(GL_ARRAY_BUFFER, vboId);
+            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+
+            glActiveTexture(GL_TEXTURE0);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glClearColor(1, 1, 1, 1);
@@ -255,6 +291,7 @@ public class Valkyrie {
                 ImGui.image(texture.getId(), 256, 256);
                 ImGui.sameLine();
                 ImGui.image(fbo.getTextureId(), 256, 256);
+                ImGui.image(shadowFbo.getDepthTextureId(), 256, 256);
                 ImGui.endTabItem();
             }
 
@@ -284,6 +321,10 @@ public class Valkyrie {
         glfwDestroyWindow(windowId);
 
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
+    }
+
+    private static void setupMatrices() {
+
     }
 
     private static void deletePendingMeshes(GpuAllocator allocator) {

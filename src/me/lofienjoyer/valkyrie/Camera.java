@@ -32,8 +32,9 @@ public class Camera {
     private final Vector3f direction;
 
     public Camera() {
-        this.position = new Vector3f(0, 33.8f, 0);
+        this.position = new Vector3f(0, 180f, 0);
         this.direction = new Vector3f();
+        rotationY = 90;
         updateDirection();
     }
 
@@ -172,9 +173,20 @@ public class Camera {
         return matrix;
     }
 
+    public static Matrix4f createViewMatrixLookingAt(Vector3f position, Vector3f lookAt) {
+        var matrix = new Matrix4f();
+        return matrix.lookAt(position, lookAt, new Vector3f(0, 1, 0));
+    }
+
     public static Matrix4f createProjectionMatrix(int width, int height) {
         var projectionMatrix = new Matrix4f();
         projectionMatrix.perspective((float) Math.toRadians(80), width / (float)height, 0.25f, 4096f);
+        return projectionMatrix;
+    }
+
+    public static Matrix4f createOrthoProjectionMatrix(int side) {
+        var projectionMatrix = new Matrix4f();
+        projectionMatrix.ortho(-side/2, side/2, -side/2, side/2, 0.25f, 128f);
         return projectionMatrix;
     }
 
