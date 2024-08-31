@@ -31,8 +31,8 @@ const float shadow[6] = {
 const vec3 normal[6] = {
 vec3(0, 0, 1),
 vec3(0, 0, -1),
-vec3(1, 0, 0),
 vec3(-1, 0, 0),
+vec3(1, 0, 0),
 vec3(0, 1, 0),
 vec3(0, -1, 0)
 };
@@ -86,7 +86,7 @@ void main()
     }
     textureCoords = vec2(x, y + 1);
     outData = vec4(x * width, y * height, texture, shadow[face]);
-    passLight = vec3((int(light) >> 8) & 0xf, (int(light) >> 4) & 0xf, int(light) & 0xf) / 8;
+    passLight = vec3((light >> 8) & 0xf, (light >> 4) & 0xf, light & 0xf) / 16;
 
     vs_out.FragPos = vec3(gl_Position.xyz);
     vs_out.Normal = normal[face];

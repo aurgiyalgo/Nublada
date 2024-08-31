@@ -7,12 +7,14 @@ in vec3 passLight;
 in float passFace;
 
 const float border = 0.03125;
+const vec2 texelSize = vec2(1 / 2048.0, 1 / 2048.0);
 
 layout (binding = 0) uniform sampler2D textureSampler;
 layout (binding = 1) uniform sampler2D shadowSampler;
 uniform float dayTime;
-uniform vec3 camPos;
-uniform vec3 lightPos;
+uniform vec3 lightDir;
+uniform float timeOfDay;
+uniform float light;
 
 const int atlasSize = 128;
 const int textureSize = 32;
@@ -25,10 +27,8 @@ in VS_OUT {
     vec4 FragPosLightSpace;
 } fs_in;
 
-float calculateShadow(vec4 fragPosLightSpace, vec3 fragPos) {
-    vec3 lightDir = lightPos - fs_in.FragPos;
-    float dotProduct = dot(fs_in.Normal, lightDir);
-    if (dotProduct < 0.0075)
+float calculateShadow(vec4 fragPosLightSpace, float dotProduct) {
+    if (dotProduct < 0.0025)
         return 1.0;
 
     // perform perspective divide
@@ -44,9 +44,8 @@ float calculateShadow(vec4 fragPosLightSpace, vec3 fragPos) {
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
 
-    float bias = max(0.05 * (1.0 - dotProduct), 0.0075);
+    float bias = max(0.01 * (1.0 - dotProduct), 0.0025);
     float shadow = 0.0;
-    vec2 texelSize = vec2(1 / 512.0, 1 / 512.0);
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
@@ -57,7 +56,7 @@ float calculateShadow(vec4 fragPosLightSpace, vec3 fragPos) {
     }
     shadow /= 9.0;
 
-    return shadow;
+    return shadow * dotProduct;
 }
 
 void main()
@@ -72,6 +71,10 @@ void main()
     if (color.a < 1.0) {
         discard;
     }
-    float s = max((1 - calculateShadow(fs_in.FragPosLightSpace, fs_in.FragPos)) * dayTime, dayTime * 0.25 + 0.25);
+
+    float dotProduct = dot(fs_in.Normal, lightDir);
+    float shadow = calculateShadow(fs_in.FragPosLightSpace, dotProduct);
+    float s = max((1 - shadow) * dotProduct * int(timeOfDay > 0.25), 0.375 * sqrt(light) + 0.0625);
+
     FragColor = vec4((vec3(color.r * max(passLight.r, s), color.g * max(passLight.g, s), color.b * max(passLight.b, s)) * outData.a), 1.0);
 }

@@ -14,7 +14,7 @@ import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 
 public class Camera {
 
-    private static final float SPEED = 32;
+    private static final float SPEED = 4;
 
     private final Vector3f position;
     private float rotationY, rotationX, roll;
@@ -186,7 +186,7 @@ public class Camera {
 
     public static Matrix4f createOrthoProjectionMatrix(int side) {
         var projectionMatrix = new Matrix4f();
-        projectionMatrix.ortho(-side/2, side/2, -side/2, side/2, 0.25f, 128f);
+        projectionMatrix.ortho(-side/2, side/2, -side/2, side/2, 0.25f, 256f);
         return projectionMatrix;
     }
 

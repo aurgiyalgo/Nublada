@@ -3,7 +3,6 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import org.joml.Math;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
@@ -32,7 +31,7 @@ public class Valkyrie {
     public static int shadowDrawLength;
 
     public static void main(String[] args) throws IOException {
-        final var vsync = 0;
+        final var vsync = 1;
         System.out.println("Vsync: " + (vsync == 1));
 
         final var shouldUseSsboRendering = shouldUseSsboRendering(args);
@@ -213,17 +212,22 @@ public class Valkyrie {
             glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
 
             dayTime += delta * timeSpeed[0];
-            var worldTime = (float) (Math.sin(dayTime * Math.PI) + 1) / 2f;
-            glClearColor(0.125f * (worldTime * 0.9f), 0.5f * (worldTime * 0.9f), 0.75f * (worldTime * 0.9f), 1);
+            var worldTime = dayTime % 1;
+            var timeOfDay = 1 - (Math.abs(worldTime * 2 - 1) + 1) / 2f;
+            var light = 1 - (Math.min(Math.abs(worldTime * 3 - 1.5f), 1) + 1) / 2f;
+            var lightPow = (float) Math.sqrt(light);
+            glClearColor(0.125f * lightPow, 0.5f * lightPow, 0.75f * lightPow, 1);
+            var sunAngle = Math.PI * 2 * worldTime - Math.PI / 2;
 
             // Shadow pass
-            glViewport(0, 0, 512, 512);
+            glViewport(0, 0, 2048, 2048);
             glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
             glClear(GL_DEPTH_BUFFER_BIT);
-            shadowCamera.setPosition(camera.getPosition());
-//            shadowCamera.getPosition().x += 16;
-            shadowCamera.getPosition().y += 64;
-            shadowCamera.getPosition().z += 64 * (worldTime * 2 - 1);
+            var shadowCameraPosition = new Vector3f();
+            shadowCameraPosition.x += (float) Math.cos(sunAngle) * 25;
+            shadowCameraPosition.y += (float) Math.sin(sunAngle) * 128;
+            shadowCameraPosition.z += (float) Math.cos(sunAngle) * 128;
+            shadowCamera.setPosition(new Vector3f(shadowCameraPosition).add(camera.getPosition()));
             shadowProgram.bind();
             shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
             glBindTexture(GL_TEXTURE_2D, texture.getId());
@@ -243,10 +247,12 @@ public class Valkyrie {
             program.setUniform("view", Camera.createViewMatrix(camera));
             program.setUniform("shadowView", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
             program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(128));
-            program.setUniform("lightPos", shadowCamera.getPosition());
+            program.setUniform("lightDir", new Vector3f(shadowCameraPosition).normalize());
             program.setUniform("camPos", camera.getPosition());
             program.setUniform("dayTime", worldTime);
             program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
+            program.setUniform("timeOfDay", timeOfDay);
+            program.setUniform("light", light);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glActiveTexture(GL_TEXTURE1);
@@ -282,6 +288,8 @@ public class Valkyrie {
             if (ImGui.beginTabItem("Data")) {
                 ImGui.text("FPS: " + 1 / delta);
                 ImGui.text("Frame time: " + delta);
+                ImGui.text("World time: " + worldTime);
+                ImGui.text("Sun angle: " + sunAngle);
                 ImGui.text(String.format("X: %.2f", camera.getPosition().x));
                 ImGui.text(String.format("Y: %.2f", camera.getPosition().y));
                 ImGui.text(String.format("Z: %.2f", camera.getPosition().z));

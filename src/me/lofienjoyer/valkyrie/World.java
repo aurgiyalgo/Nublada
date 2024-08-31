@@ -57,7 +57,7 @@ public class World {
         LightManager.propagateGreen(this, greenLightNodes);
         LightManager.propagateBlue(this, blueLightNodes);
 
-        final var worldSide = 8;
+        final var worldSide = 6;
         final var worldHeight = 8;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraY = (int)Math.floor(camera.getPosition().y / 32);
