@@ -23,7 +23,7 @@ public class Valkyrie {
 
     public static final Object lock = new Object();
 
-    public static List<Chunk> meshesToDelete = new ArrayList<>();
+    public static List<Long> meshesToDelete = new ArrayList<>();
     public static List<Chunk> chunksToRender = new ArrayList<>();
     public static List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
 
@@ -352,23 +352,14 @@ public class Valkyrie {
             return;
 
         for (int i = 0; i < Math.min(meshesToDelete.size(), 32); i++) {
-            var chunk = meshesToDelete.removeFirst();
-            if (chunk.getMesh() != null)
-                allocator.delete(chunk.getMesh());
+            allocator.delete(meshesToDelete.removeFirst());
         }
     }
 
     private static void uploadMeshes(GpuAllocator allocator) {
         for (int i = 0; i < Math.min(meshesToUpdate.size(), 32); i++) {
             var meshToUpdate = meshesToUpdate.removeFirst();
-            var mesh = meshToUpdate.chunk().getMesh();
-            if (mesh == null) {
-                var meshInstance = new MeshInstance(0, 0);
-                meshInstance.setId(meshToUpdate.id());
-                meshToUpdate.chunk().setMesh(allocator.store(meshInstance, meshToUpdate.data()));
-            } else {
-                allocator.update(mesh, meshToUpdate.data());
-            }
+            allocator.update(meshToUpdate.id(), meshToUpdate.data());
         }
     }
 

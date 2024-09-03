@@ -9,7 +9,6 @@ import java.util.concurrent.Future;
 public class Chunk {
 
     private short[] data;
-    private MeshInstance mesh;
     private final Vector3i position;
     private boolean dirty;
     private boolean priority;
@@ -69,14 +68,6 @@ public class Chunk {
         if (data == null) return;
         if (y < 0 || y > 31 || x < 0 || x > 31 || z < 0 || z > 31) return;
         data[x | y << 5 | z << 10] = (short) ((data[x | y << 5 | z << 10] & 0xff0f) | (light << 4));
-    }
-
-    public MeshInstance getMesh() {
-        return mesh;
-    }
-
-    public void setMesh(MeshInstance mesh) {
-        this.mesh = mesh;
     }
 
     public short[] getData() {

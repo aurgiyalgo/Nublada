@@ -62,13 +62,14 @@ public class World {
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraY = (int)Math.floor(camera.getPosition().y / 32);
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
-        var meshesToDelete = new ArrayList<Chunk>();
+        var meshesToDelete = new ArrayList<Long>();
         var meshesToUpdate = new ArrayList<MeshToUpdate>();
         getChunks().stream().toList().forEach(chunk -> {
             var position = chunk.getPosition();
+            long encodedPosition = (position.x + 1024 * 32) | (long) (position.y + 1024 * 32) << 16 | (long) (position.z + 1024 * 32) << 32;
             if (Math.abs(position.x - cameraX) > worldSide/2 + 2 || Math.abs(position.z - cameraZ) > worldSide/2 + 2 || Math.abs(position.y - cameraY) > worldHeight/2 + 2) {
                 unloadChunk(position.x, position.y, position.z);
-                meshesToDelete.add(chunk);
+                meshesToDelete.add(encodedPosition);
                 return;
             }
 
@@ -91,10 +92,8 @@ public class World {
             if (!firstFuture.isDone())
                 return;
 
-            long id = (position.x + 1024 * 32) | (long) (position.y + 1024 * 32) << 16 | (long) (position.z + 1024 * 32) << 32;
-
             try {
-                meshesToUpdate.add(new MeshToUpdate(chunk, Valkyrie.integerListToArray(firstFuture.get()), id));
+                meshesToUpdate.add(new MeshToUpdate(Valkyrie.integerListToArray(firstFuture.get()), encodedPosition));
                 futures.removeFirst();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);

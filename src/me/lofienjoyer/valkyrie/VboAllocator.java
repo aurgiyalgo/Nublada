@@ -48,10 +48,12 @@ public class VboAllocator implements GpuAllocator{
     }
 
     @Override
-    public MeshInstance store(MeshInstance mesh, int[] dataToAllocate) {
+    public MeshInstance store(long id, int[] dataToAllocate) {
         if (dataToAllocate.length == 0) {
+            var mesh = new MeshInstance(0, 0);
             mesh.setIndex(0);
             mesh.setLength(0);
+            mesh.setId(id);
             return mesh;
         }
 
@@ -73,7 +75,9 @@ public class VboAllocator implements GpuAllocator{
             if (!isCurrentIndexValid)
                 continue;
 
-            instances.put(mesh.getId(), mesh);
+            var mesh = new MeshInstance(0, 0);
+            mesh.setId(id);
+            instances.put(id, mesh);
 
             mesh.setLength(dataToAllocate.length / 2);
             mesh.setIndex(i * WORD_SIZE);
@@ -92,7 +96,11 @@ public class VboAllocator implements GpuAllocator{
     }
 
     @Override
-    public void delete(MeshInstance instanceToRemove) {
+    public void delete(long id) {
+        var instanceToRemove = instances.get(id);
+        if (instanceToRemove == null)
+            return;
+
         if (instanceToRemove.getLength() == 0)
             return;
 
@@ -164,9 +172,11 @@ public class VboAllocator implements GpuAllocator{
     }
 
     @Override
-    public void update(MeshInstance instance, int[] data) {
-        delete(instance);
-        store(instance, data);
+    public void update(long id, int[] data) {
+        if (instances.containsKey(id))
+            delete(id);
+
+        store(id, data);
     }
 
     private int getFirstPopulatedIndexAfter(int index) {

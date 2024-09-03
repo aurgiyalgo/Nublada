@@ -7,11 +7,11 @@ public interface GpuAllocator {
 
     Collection<MeshInstance> getMeshes();
 
-    MeshInstance store(MeshInstance instance, int[] data);
+    MeshInstance store(long id, int[] data);
 
-    void delete(MeshInstance instanceToRemove);
+    void delete(long id);
 
-    void update(MeshInstance instance, int[] data);
+    void update(long id, int[] data);
 
     void optimizeBuffer(int amount);
 
