@@ -91,8 +91,10 @@ public class World {
             if (!firstFuture.isDone())
                 return;
 
+            long id = (position.x + 1024 * 32) | (long) (position.y + 1024 * 32) << 16 | (long) (position.z + 1024 * 32) << 32;
+
             try {
-                meshesToUpdate.add(new MeshToUpdate(chunk, Valkyrie.integerListToArray(firstFuture.get())));
+                meshesToUpdate.add(new MeshToUpdate(chunk, Valkyrie.integerListToArray(firstFuture.get()), id));
                 futures.removeFirst();
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);

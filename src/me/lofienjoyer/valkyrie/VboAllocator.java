@@ -20,13 +20,13 @@ public class VboAllocator implements GpuAllocator{
 
     private final int vboId;
     private final int auxVboId;
-    private final int[] allocatorData;
+    private final long[] allocatorData;
     private final long sizeInBytes;
-    private final Map<Integer, MeshInstance> instances;
+    private final Map<Long, MeshInstance> instances;
     private int firstFreePosition = 0;
 
     public VboAllocator(int vao, long sizeInBytes) {
-        this.allocatorData = new int[(int) (sizeInBytes / WORD_SIZE)];
+        this.allocatorData = new long[(int) (sizeInBytes / WORD_SIZE)];
         this.sizeInBytes = sizeInBytes;
         this.instances = new HashMap<>();
 
@@ -40,6 +40,11 @@ public class VboAllocator implements GpuAllocator{
 
         this.auxVboId = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, auxVboId);
+    }
+
+    @Override
+    public Collection<MeshInstance> getMeshes() {
+        return instances.values();
     }
 
     @Override
@@ -68,10 +73,7 @@ public class VboAllocator implements GpuAllocator{
             if (!isCurrentIndexValid)
                 continue;
 
-            if (mesh.getId() == 0) {
-                mesh.setId(idCounter.incrementAndGet());
-                instances.put(mesh.getId(), mesh);
-            }
+            instances.put(mesh.getId(), mesh);
 
             mesh.setLength(dataToAllocate.length / 2);
             mesh.setIndex(i * WORD_SIZE);
@@ -100,7 +102,6 @@ public class VboAllocator implements GpuAllocator{
             allocatorData[i] = 0;
         }
         instances.remove(instanceToRemove.getId());
-        instanceToRemove.setId(0);
     }
 
     @Override
@@ -120,7 +121,7 @@ public class VboAllocator implements GpuAllocator{
                 break;
             }
 
-            int dataFound = allocatorData[firstPopulatedIndex];
+            long dataFound = allocatorData[firstPopulatedIndex];
             int dataLength = (instances.get(dataFound).getLength() * 2 * Integer.BYTES) / WORD_SIZE + 1;
 
             for (int j = firstPopulatedIndex; j < dataLength + firstPopulatedIndex; j++) {

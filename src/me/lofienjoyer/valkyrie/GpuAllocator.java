@@ -1,6 +1,11 @@
 package me.lofienjoyer.valkyrie;
 
+import java.util.Collection;
+import java.util.List;
+
 public interface GpuAllocator {
+
+    Collection<MeshInstance> getMeshes();
 
     MeshInstance store(MeshInstance instance, int[] data);
 

@@ -201,7 +201,7 @@ public class Valkyrie {
                 uploadMeshes(allocator);
                 deletePendingMeshes(allocator);
                 allocator.optimizeBuffer(32);
-                updateIndirectBuffer(chunksToRender, new Vector3i((int) (camera.getPosition().x / 32), 0, (int) (camera.getPosition().z / 32)), indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer, shadowChunkPositionBuffer);
+                updateIndirectBuffer(allocator, new Vector3i((int) (camera.getPosition().x / 32), 0, (int) (camera.getPosition().z / 32)), indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer, shadowChunkPositionBuffer);
             }
 
             if (Input.isKeyJustPressed(GLFW_KEY_P))
@@ -363,53 +363,52 @@ public class Valkyrie {
             var meshToUpdate = meshesToUpdate.removeFirst();
             var mesh = meshToUpdate.chunk().getMesh();
             if (mesh == null) {
-                meshToUpdate.chunk().setMesh(allocator.store(new MeshInstance(0, 0), meshToUpdate.data()));
+                var meshInstance = new MeshInstance(0, 0);
+                meshInstance.setId(meshToUpdate.id());
+                meshToUpdate.chunk().setMesh(allocator.store(meshInstance, meshToUpdate.data()));
             } else {
                 allocator.update(mesh, meshToUpdate.data());
             }
         }
     }
 
-    private static int updateIndirectBuffer(Collection<Chunk> chunks, Vector3i camPos, int indirectBuffer, int chunkPositionBuffer, int shadowIndirectBuffer, int shadowChunkPositionBuffer) {
+    private static int updateIndirectBuffer(GpuAllocator allocator, Vector3i camPos, int indirectBuffer, int chunkPositionBuffer, int shadowIndirectBuffer, int shadowChunkPositionBuffer) {
         var indirectCmdsList = new ArrayList<Integer>();
-        var chunkPositions = new ArrayList<Vector3i>();
+        var chunkPositions = new ArrayList<Long>();
         var shadowIndirectCmdsList = new ArrayList<Integer>();
-        var shadowChunkPositions = new ArrayList<Vector3i>();
-        for (Chunk chunk : chunks) {
-            var mesh = chunk.getMesh();
-            if (mesh == null)
-                continue;
-
+        var shadowChunkPositions = new ArrayList<Long>();
+        allocator.getMeshes().forEach(mesh -> {
             indirectCmdsList.add(3);
             indirectCmdsList.add(mesh.getLength());
             indirectCmdsList.add(0);
             indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
-            var position = chunk.getPosition();
-            chunkPositions.add(position);
-            if (chunk.getPosition().x > camPos.x + 2 || chunk.getPosition().x < camPos.x - 2 || chunk.getPosition().z > camPos.z + 2 || chunk.getPosition().z < camPos.z - 2)
-                continue;
+
+            chunkPositions.add(mesh.getId());
+            var meshX = (mesh.getId() & 0xffff) - 1024 * 32;
+            var meshZ = (mesh.getId() >> 32) & 0xffff - 1024 * 32;
+
+            if (meshX > camPos.x + 2 || meshX < camPos.x - 2 || meshZ > camPos.z + 2 || meshZ < camPos.z - 2)
+                return;
 
             shadowIndirectCmdsList.add(3);
             shadowIndirectCmdsList.add(mesh.getLength());
             shadowIndirectCmdsList.add(0);
             shadowIndirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
-            shadowChunkPositions.add(position);
-        }
+            shadowChunkPositions.add(mesh.getId());
+        });
 
-        int[] chunkPositionsArray = new int[chunkPositions.size() * 3];
+        int[] chunkPositionsArray = new int[chunkPositions.size() * 2];
         for (int i = 0; i < chunkPositions.size(); i++) {
             var position = chunkPositions.get(i);
-            chunkPositionsArray[i * 3] = position.x;
-            chunkPositionsArray[i * 3 + 1] = position.y;
-            chunkPositionsArray[i * 3 + 2] = position.z;
+            chunkPositionsArray[i * 2] = (int) (position & 0xffffffff);
+            chunkPositionsArray[i * 2 + 1] = (int) (position >> 32);
         }
 
-        int[] shadowChunkPositionsArray = new int[shadowChunkPositions.size() * 3];
+        int[] shadowChunkPositionsArray = new int[shadowChunkPositions.size() * 2];
         for (int i = 0; i < shadowChunkPositions.size(); i++) {
             var position = shadowChunkPositions.get(i);
-            shadowChunkPositionsArray[i * 3] = position.x;
-            shadowChunkPositionsArray[i * 3 + 1] = position.y;
-            shadowChunkPositionsArray[i * 3 + 2] = position.z;
+            shadowChunkPositionsArray[i * 2] = (int) (position & 0xffffffff);
+            shadowChunkPositionsArray[i * 2 + 1] = (int) (position >> 32);
         }
 
         int[] shadowIndirectCmds = new int[shadowIndirectCmdsList.size()];

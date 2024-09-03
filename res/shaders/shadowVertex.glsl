@@ -27,7 +27,7 @@ const float shadow[6] = {
 };
 
 vec3 getChunkPosition(int index) {
-    return vec3(positionData[index * 3], positionData[index * 3 + 1], positionData[index * 3 + 2]);
+    return vec3((positionData[index * 2] & 0xffff) - 1024 * 32, (positionData[index * 2] >> 16) & 0xffff - 1024 * 32, positionData[index * 2 + 1] - 1024 * 32);
 }
 
 void main()
