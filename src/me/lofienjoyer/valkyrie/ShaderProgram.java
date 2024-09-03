@@ -2,6 +2,7 @@ package me.lofienjoyer.valkyrie;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.lwjgl.BufferUtils;
 
 import java.io.IOException;
@@ -58,6 +59,10 @@ public class ShaderProgram {
 
     public void setUniform(String uniformName, Vector3f value) {
         glUniform3f(getUniformLocation(uniformName), value.x, value.y, value.z);
+    }
+
+    public void setUniform(String uniformName, Vector3i value) {
+        glUniform3i(getUniformLocation(uniformName), value.x, value.y, value.z);
     }
 
 }

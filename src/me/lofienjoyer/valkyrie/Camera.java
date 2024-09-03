@@ -32,7 +32,7 @@ public class Camera {
     private final Vector3f direction;
 
     public Camera() {
-        this.position = new Vector3f(0, 180f, 0);
+        this.position = new Vector3f(1024 * 32 * 32, 180f, 1024 * 32 * 32);
         this.direction = new Vector3f();
         rotationY = 90;
         updateDirection();
@@ -168,7 +168,7 @@ public class Camera {
         matrix.rotate((float) Math.toRadians(camera.getRotationY()), new Vector3f(1, 0, 0));
         matrix.rotate((float) Math.toRadians(camera.getRotationX()), new Vector3f(0, 1, 0));
         Vector3f cameraPos = camera.getPosition();
-        Vector3f negativeCameraPos = new Vector3f(-cameraPos.x, -cameraPos.y, -cameraPos.z);
+        Vector3f negativeCameraPos = new Vector3f(-cameraPos.x % 32, -cameraPos.y % 32, -cameraPos.z % 32);
         matrix.translate(negativeCameraPos);
         return matrix;
     }

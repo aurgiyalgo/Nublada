@@ -66,7 +66,7 @@ public class World {
         var meshesToUpdate = new ArrayList<MeshToUpdate>();
         getChunks().stream().toList().forEach(chunk -> {
             var position = chunk.getPosition();
-            long encodedPosition = (position.x + 1024 * 32) | (long) (position.y + 1024 * 32) << 16 | (long) (position.z + 1024 * 32) << 32;
+            long encodedPosition = (position.x) | (long) (position.y) << 16 | (long) (position.z) << 32;
             if (Math.abs(position.x - cameraX) > worldSide/2 + 2 || Math.abs(position.z - cameraZ) > worldSide/2 + 2 || Math.abs(position.y - cameraY) > worldHeight/2 + 2) {
                 unloadChunk(position.x, position.y, position.z);
                 meshesToDelete.add(encodedPosition);

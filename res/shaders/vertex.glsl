@@ -13,6 +13,7 @@ uniform float dayTime;
 uniform float worldTime;
 uniform mat4 shadowProj;
 uniform mat4 shadowView;
+uniform ivec3 camChunkPos;
 
 layout(packed, binding = 0) buffer positionBuffer
 {
@@ -45,14 +46,14 @@ out VS_OUT {
 } vs_out;
 
 vec3 getChunkPosition(int index) {
-    return vec3((positionData[index * 2] & 0xffff) - 1024 * 32, (positionData[index * 2] >> 16) & 0xffff - 1024 * 32, positionData[index * 2 + 1] - 1024 * 32);
+    return vec3(positionData[index * 2] & 0xffff, (positionData[index * 2] >> 16) & 0xffff, positionData[index * 2 + 1] & 0xffff);
 }
 
 void main()
 {
     int x = int(data >> 5);
     int y = int(data & 0x1fu) - 1;
-    vec3 chunkPosition = getChunkPosition(gl_DrawID);
+    vec3 chunkPosition = getChunkPosition(gl_DrawID) - camChunkPos;
     float positionX = int((position.x >> 6) & 0x3fu);
     float positionY = int(position.x & 0x3fu);
     float positionZ = int((position.x >> 12) & 0x3fu);

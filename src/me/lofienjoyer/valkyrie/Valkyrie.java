@@ -227,9 +227,10 @@ public class Valkyrie {
             shadowCameraPosition.x += (float) Math.cos(sunAngle) * 25;
             shadowCameraPosition.y += (float) Math.sin(sunAngle) * 128;
             shadowCameraPosition.z += (float) Math.cos(sunAngle) * 128;
-            shadowCamera.setPosition(new Vector3f(shadowCameraPosition).add(camera.getPosition()));
+            shadowCamera.setPosition(new Vector3f(shadowCameraPosition).add(new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
             shadowProgram.bind();
             shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
+            program.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
@@ -249,6 +250,7 @@ public class Valkyrie {
             program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(128));
             program.setUniform("lightDir", new Vector3f(shadowCameraPosition).normalize());
             program.setUniform("camPos", camera.getPosition());
+            program.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
             program.setUniform("dayTime", worldTime);
             program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
             program.setUniform("timeOfDay", timeOfDay);

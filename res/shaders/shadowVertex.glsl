@@ -11,6 +11,7 @@ uniform mat4 proj;
 uniform mat4 view;
 uniform float dayTime;
 uniform float worldTime;
+uniform ivec3 camChunkPos;
 
 layout(packed, binding = 0) buffer positionBuffer
 {
@@ -27,7 +28,7 @@ const float shadow[6] = {
 };
 
 vec3 getChunkPosition(int index) {
-    return vec3((positionData[index * 2] & 0xffff) - 1024 * 32, (positionData[index * 2] >> 16) & 0xffff - 1024 * 32, positionData[index * 2 + 1] - 1024 * 32);
+    return vec3(positionData[index * 2] & 0xffff, (positionData[index * 2] >> 16) & 0xffff, positionData[index * 2 + 1] & 0xffff);
 }
 
 void main()
