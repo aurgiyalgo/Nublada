@@ -74,7 +74,7 @@ void main()
 
     float dotProduct = dot(fs_in.Normal, lightDir);
     float shadow = calculateShadow(fs_in.FragPosLightSpace, dotProduct);
-    float s = max((1 - shadow) * dotProduct * max(timeOfDay, 0.25), 0.375 * sqrt(light) + 0.0625);
+    float s = max((1 - shadow) * dotProduct * max(sqrt(light), 0.1), 0.375 * min(sqrt(light) * 1.25, 1) + 0.0625);
 
     FragColor = vec4((vec3(color.r * max(passLight.r, s), color.g * max(passLight.g, s), color.b * max(passLight.b, s)) * outData.a), 1.0);
 }

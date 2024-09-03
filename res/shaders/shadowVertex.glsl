@@ -6,6 +6,8 @@ layout (location = 1) in uvec2 position;
 out vec2 textureCoords;
 out vec4 outData;
 out float passLight;
+out vec3 outChunkPos;
+out vec3 outCamPos;
 
 uniform mat4 proj;
 uniform mat4 view;
@@ -35,7 +37,7 @@ void main()
 {
     int x = int(data >> 5);
     int y = int(data & 0x1fu) - 1;
-    vec3 chunkPosition = getChunkPosition(gl_DrawID);
+    vec3 chunkPosition = getChunkPosition(gl_DrawID) - camChunkPos;
     float positionX = int((position.x >> 6) & 0x3fu);
     float positionY = int(position.x & 0x3fu);
     float positionZ = int((position.x >> 12) & 0x3fu);
@@ -68,5 +70,7 @@ void main()
     }
     textureCoords = vec2(x, y + 1);
     outData = vec4(x * width, y * height, texture, shadow[face]);
+    outChunkPos = chunkPosition;
+    outCamPos = camChunkPos;
 
 }

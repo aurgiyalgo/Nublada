@@ -94,24 +94,4 @@ public class Chunk {
         return world;
     }
 
-    public boolean isMeshLoaded() {
-        return meshLoaded;
-    }
-
-    public void setMeshLoaded(boolean meshLoaded) {
-        this.meshLoaded = meshLoaded;
-    }
-
-    public List<Future<List<Integer>>> getFutures() {
-        return futures;
-    }
-
-    public boolean isPriority() {
-        return priority;
-    }
-
-    public void setPriority(boolean priority) {
-        this.priority = priority;
-    }
-
 }

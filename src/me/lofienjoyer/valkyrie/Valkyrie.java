@@ -25,7 +25,7 @@ public class Valkyrie {
 
     public static List<Long> meshesToDelete = new ArrayList<>();
     public static List<Chunk> chunksToRender = new ArrayList<>();
-    public static List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
+    public static final List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
 
     public static int drawLength;
     public static int shadowDrawLength;
@@ -227,10 +227,10 @@ public class Valkyrie {
             shadowCameraPosition.x += (float) Math.cos(sunAngle) * 25;
             shadowCameraPosition.y += (float) Math.sin(sunAngle) * 128;
             shadowCameraPosition.z += (float) Math.cos(sunAngle) * 128;
-            shadowCamera.setPosition(new Vector3f(shadowCameraPosition).add(new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
+            shadowCamera.setPosition(new Vector3f(shadowCameraPosition));
             shadowProgram.bind();
-            shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
-            program.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
+            shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
+            shadowProgram.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
@@ -246,7 +246,7 @@ public class Valkyrie {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             program.bind();
             program.setUniform("view", Camera.createViewMatrix(camera));
-            program.setUniform("shadowView", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), camera.getPosition()));
+            program.setUniform("shadowView", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
             program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(128));
             program.setUniform("lightDir", new Vector3f(shadowCameraPosition).normalize());
             program.setUniform("camPos", camera.getPosition());
@@ -377,8 +377,8 @@ public class Valkyrie {
             indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
 
             chunkPositions.add(mesh.getId());
-            var meshX = (mesh.getId() & 0xffff) - 1024 * 32;
-            var meshZ = (mesh.getId() >> 32) & 0xffff - 1024 * 32;
+            var meshX = (mesh.getId() & 0xffff);
+            var meshZ = (mesh.getId() >> 32) & 0xffff;
 
             if (meshX > camPos.x + 2 || meshX < camPos.x - 2 || meshZ > camPos.z + 2 || meshZ < camPos.z - 2)
                 return;

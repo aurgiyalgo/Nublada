@@ -175,7 +175,7 @@ public class Camera {
 
     public static Matrix4f createViewMatrixLookingAt(Vector3f position, Vector3f lookAt) {
         var matrix = new Matrix4f();
-        return matrix.lookAt(position, lookAt, new Vector3f(0, 1, 0));
+        return matrix.lookAt(position, new Vector3f(), new Vector3f(0, 1, 0));
     }
 
     public static Matrix4f createProjectionMatrix(int width, int height) {

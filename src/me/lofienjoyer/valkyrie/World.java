@@ -63,7 +63,6 @@ public class World {
         var cameraY = (int)Math.floor(camera.getPosition().y / 32);
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
         var meshesToDelete = new ArrayList<Long>();
-        var meshesToUpdate = new ArrayList<MeshToUpdate>();
         getChunks().stream().toList().forEach(chunk -> {
             var position = chunk.getPosition();
             long encodedPosition = (position.x) | (long) (position.y) << 16 | (long) (position.z) << 32;
@@ -74,29 +73,13 @@ public class World {
             }
 
             if (chunk.isDirty()) {
-                if (!chunk.isPriority()) {
-                    chunk.getFutures().forEach(future -> future.cancel(true));
-                    chunk.getFutures().clear();
-                }
-                chunk.getFutures().add(Valkyrie.executorService.submit(() -> {
-                    return new GreedyMesher(chunk, chunk.getWorld()).compute();
-                }));
+                Valkyrie.executorService.submit(() -> {
+                    var computedMesh = Valkyrie.integerListToArray(new GreedyMesher(chunk, chunk.getWorld()).compute());
+                    synchronized (Valkyrie.lock) {
+                        Valkyrie.meshesToUpdate.add(new MeshToUpdate(computedMesh, encodedPosition));
+                    }
+                });
                 chunk.setDirty(false);
-            }
-
-            var futures = chunk.getFutures();
-            if (futures.isEmpty())
-                return;
-
-            var firstFuture = chunk.getFutures().getFirst();
-            if (!firstFuture.isDone())
-                return;
-
-            try {
-                meshesToUpdate.add(new MeshToUpdate(Valkyrie.integerListToArray(firstFuture.get()), encodedPosition));
-                futures.removeFirst();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
             }
         });
 
@@ -121,7 +104,6 @@ public class World {
         synchronized (Valkyrie.lock) {
             Valkyrie.meshesToDelete.addAll(meshesToDelete);
             Valkyrie.chunksToRender = chunksToRender;
-            Valkyrie.meshesToUpdate.addAll(meshesToUpdate);
         }
     }
 
@@ -289,7 +271,6 @@ public class World {
         blueLightRemovalNodes.add(new LightRemovalNode(index, chunk.getBlueLight(blockX, blockY, blockZ), chunk));
         chunk.setBlock(blockX, blockY, blockZ, voxel);
         chunk.setDirty(true);
-        chunk.setPriority(true);
         updateBlockNeighbors(position, blockX, blockY, blockZ);
     }
 
@@ -319,7 +300,6 @@ public class World {
         greenLightNodes.add(new LightNode(index, chunk));
         blueLightNodes.add(new LightNode(index, chunk));
         chunk.setDirty(true);
-        chunk.setPriority(true);
         updateBlockNeighbors(position, blockX, blockY, blockZ);
     }
 
@@ -341,35 +321,30 @@ public class World {
             var neighbor = getChunk(chunkPos.x + 1, chunkPos.y, chunkPos.z);
             if (neighbor != null) {
                 neighbor.setDirty(true);
-                neighbor.setPriority(true);
             }
         }
         if (blockY == 0) {
             var neighbor = getChunk(chunkPos.x, chunkPos.y - 1, chunkPos.z);
             if (neighbor != null) {
                 neighbor.setDirty(true);
-                neighbor.setPriority(true);
             }
         }
         if (blockY == CHUNK_SIDE - 1) {
             var neighbor = getChunk(chunkPos.x, chunkPos.y + 1, chunkPos.z);
             if (neighbor != null) {
                 neighbor.setDirty(true);
-                neighbor.setPriority(true);
             }
         }
         if (blockZ == 0) {
             var neighbor = getChunk(chunkPos.x, chunkPos.y, chunkPos.z - 1);
             if (neighbor != null) {
                 neighbor.setDirty(true);
-                neighbor.setPriority(true);
             }
         }
         if (blockZ == CHUNK_SIDE - 1) {
             var neighbor = getChunk(chunkPos.x, chunkPos.y, chunkPos.z + 1);
             if (neighbor != null) {
                 neighbor.setDirty(true);
-                neighbor.setPriority(true);
             }
         }
     }

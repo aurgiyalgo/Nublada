@@ -6,6 +6,7 @@ layout (location = 1) in uvec2 position;
 out vec2 textureCoords;
 out vec4 outData;
 out vec3 passLight;
+out vec3 outCamPos;
 
 uniform mat4 proj;
 uniform mat4 view;
@@ -93,5 +94,6 @@ void main()
     vs_out.Normal = normal[face];
     vs_out.FragPosLightSpace = shadowProj * shadowView * vec4(vs_out.FragPos, 1.0);
     gl_Position = proj * view * vec4(vs_out.FragPos, 1.0);
+    outCamPos = camChunkPos;
 
 }
