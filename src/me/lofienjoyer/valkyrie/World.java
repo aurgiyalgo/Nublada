@@ -13,6 +13,8 @@ public class World {
 
     private final Map<Vector3i, Chunk> chunks;
     private final FastNoiseLite noise;
+    private final FastNoiseLite caveNoise;
+    private final FastNoiseLite caveNoise2;
     private final Queue<LightNode> redLightNodes;
     private final Queue<LightNode> greenLightNodes;
     private final Queue<LightNode> blueLightNodes;
@@ -27,7 +29,13 @@ public class World {
         var random = new SplittableRandom(2);
         this.noise = new FastNoiseLite(random.nextInt());
         noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
-        noise.SetFrequency(1 / 512f);
+        noise.SetFrequency(1 / 4096f);
+        this.caveNoise = new FastNoiseLite(random.nextInt());
+        caveNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+        caveNoise.SetFrequency(1 / 128f);
+        this.caveNoise2 = new FastNoiseLite(random.nextInt());
+        caveNoise2.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+        caveNoise2.SetFrequency(1 / 128f);
         this.redLightNodes = new ArrayDeque<>();
         this.greenLightNodes = new ArrayDeque<>();
         this.blueLightNodes = new ArrayDeque<>();
@@ -117,8 +125,8 @@ public class World {
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
                     var height = heightMap[x | z << 5];
-                    height *= 192;
-                    height -= (chunkY * 32) - 64;
+                    height *= 3000;
+                    height -= (chunkY * 32) - 27000;
                     var localMax = Math.min(height, 32);
                     for (int y = 0; y < localMax; y++) {
                         if (chunkY * 32 + y < random.nextInt(5) + 1) {
@@ -129,7 +137,9 @@ public class World {
                             chunk.setBlock(x, y, z, 1);
                         }
 
-                        if (noise.GetNoise((chunkX * 32 + x) * 8, (chunkY * 32 + y) * 8, (chunkZ * 32 + z) * 8) < -0.5)
+                        var cave1 = caveNoise.GetNoise((chunkX * 32 + x), (chunkY * 32 + y) * 2, (chunkZ * 32 + z));
+                        var cave2 = caveNoise2.GetNoise((chunkX * 32 + x), (chunkY * 32 + y), (chunkZ * 32 + z));
+                        if (Math.abs(cave1) + Math.abs(cave2) < 0.15)
                             chunk.setBlock(x, y, z, 0);
                     }
 

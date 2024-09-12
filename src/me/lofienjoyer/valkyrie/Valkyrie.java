@@ -28,7 +28,6 @@ public class Valkyrie {
     public static final List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
 
     public static int drawLength;
-    public static int shadowDrawLength;
 
     public static void main(String[] args) throws IOException {
         final var vsync = 1;
@@ -48,6 +47,8 @@ public class Valkyrie {
         glfwMakeContextCurrent(windowId);
         glfwSwapInterval(vsync);
         GL.createCapabilities();
+
+        final var gpuName = glGetString(GL_RENDERER);
 
         var input = Input.getInstance();
         input.setup(windowId);
@@ -113,7 +114,7 @@ public class Valkyrie {
         } else {
             program = new ShaderProgram("vertex.glsl", "fragment.glsl");
             shadowProgram = new ShaderProgram("shadowVertex.glsl", "shadowFragment.glsl");
-            allocator = new VboAllocator(vaoId, 64 * 1024 * 1024);
+            allocator = new VboAllocator(vaoId, 256 * 1024 * 1024);
         }
 
         var texture = new Texture("res/textures/blocks/tiles.png");
@@ -128,10 +129,6 @@ public class Valkyrie {
 
         int shadowIndirectBuffer = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
-
-        int shadowChunkPositionBuffer = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionBuffer);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowChunkPositionBuffer);
 
         var camera = new Camera();
         program.bind();
@@ -171,13 +168,16 @@ public class Valkyrie {
         var delta = 1 / 60f;
         boolean wireframe = false;
         var random = new Random();
-        var updateCamera = true;
         var saturation = new float[] { 0.5f };
-        var timeSpeed = new float[] { 0f };
+        var timeSpeed = new float[] { 0.005f };
         var dayTime = 0f;
+        var debug = false;
 
         while (!glfwWindowShouldClose(windowId)) {
-            if (updateCamera) {
+            if (Input.isKeyJustPressed(GLFW_KEY_F3))
+                debug = !debug;
+
+            if (!debug) {
                 camera.update(windowId, delta);
 
                 if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_1)) {
@@ -200,8 +200,10 @@ public class Valkyrie {
             synchronized (lock) {
                 uploadMeshes(allocator);
                 deletePendingMeshes(allocator);
-                allocator.optimizeBuffer(32);
-                updateIndirectBuffer(allocator, new Vector3i((int) (camera.getPosition().x / 32), 0, (int) (camera.getPosition().z / 32)), indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer, shadowChunkPositionBuffer);
+                for (int i = 0; i < 2; i++) {
+                    allocator.optimizeBuffer(64);
+                }
+                updateIndirectBuffer(allocator, new Vector3i((int) (camera.getPosition().x / 32), 0, (int) (camera.getPosition().z / 32)), indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer);
             }
 
             if (Input.isKeyJustPressed(GLFW_KEY_P))
@@ -225,20 +227,22 @@ public class Valkyrie {
             glClear(GL_DEPTH_BUFFER_BIT);
             var shadowCameraPosition = new Vector3f();
             shadowCameraPosition.x += (float) Math.cos(sunAngle) * 25;
-            shadowCameraPosition.y += (float) Math.sin(sunAngle) * 128;
-            shadowCameraPosition.z += (float) Math.cos(sunAngle) * 128;
+            shadowCameraPosition.y += (float) Math.sin(sunAngle) * 512;
+            shadowCameraPosition.z += (float) Math.cos(sunAngle) * 512;
             shadowCamera.setPosition(new Vector3f(shadowCameraPosition));
             shadowProgram.bind();
             shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
             shadowProgram.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
             glBindTexture(GL_TEXTURE_2D, texture.getId());
+            glDisable(GL_CULL_FACE);
             glEnable(GL_DEPTH_TEST);
             glBindVertexArray(vaoId);
             glBindBuffer(GL_ARRAY_BUFFER, vboId);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowChunkPositionBuffer);
-            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, shadowDrawLength, 0);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
+            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+            glEnable(GL_CULL_FACE);
 
             // Color pass
             glViewport(0, 0, width, height);
@@ -280,55 +284,56 @@ public class Valkyrie {
             glBindTexture(GL_TEXTURE_2D, fbo.getTextureId());
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
-            imGuiGlfw.newFrame();
-            ImGui.newFrame();
+            if (debug) {
+                imGuiGlfw.newFrame();
+                ImGui.newFrame();
 
-            ImGui.begin("Debug");
+                ImGui.begin("Debug");
 
-            ImGui.beginTabBar("tabs");
+                ImGui.beginTabBar("tabs");
 
-            if (ImGui.beginTabItem("Data")) {
-                ImGui.text("FPS: " + 1 / delta);
-                ImGui.text("Frame time: " + delta);
-                ImGui.text("World time: " + worldTime);
-                ImGui.text("Sun angle: " + sunAngle);
-                ImGui.text(String.format("X: %.2f", camera.getPosition().x));
-                ImGui.text(String.format("Y: %.2f", camera.getPosition().y));
-                ImGui.text(String.format("Z: %.2f", camera.getPosition().z));
-                ImGui.text("Chunk meshes");
-                ImGui.sameLine();
-                ImGui.progressBar((float) allocator.getFirstFreePosition() / allocator.getSizeInBytes());
-                ImGui.text(allocator.getFirstFreePosition() + " / " + allocator.getSizeInBytes());
-                synchronized (lock) {
-                    ImGui.text("Chunks rendered: " + chunksToRender.size());
-                    ImGui.text("Meshes to delete: " + meshesToDelete.size());
-                    ImGui.text("Meshes to update: " + meshesToUpdate.size());
+                if (ImGui.beginTabItem("Data")) {
+                    ImGui.text("GPU: " + gpuName);
+                    ImGui.text("FPS: " + 1 / delta);
+                    ImGui.text("Frame time: " + delta);
+                    ImGui.text("World time: " + worldTime);
+                    ImGui.text("Sun angle: " + sunAngle);
+                    ImGui.text(String.format("X: %.2f", camera.getPosition().x));
+                    ImGui.text(String.format("Y: %.2f", camera.getPosition().y));
+                    ImGui.text(String.format("Z: %.2f", camera.getPosition().z));
+                    ImGui.text("Chunk meshes");
+                    ImGui.sameLine();
+                    ImGui.progressBar((float) allocator.getFirstFreePosition() / allocator.getSizeInBytes());
+                    ImGui.text(allocator.getFirstFreePosition() + " / " + allocator.getSizeInBytes());
+                    synchronized (lock) {
+                        ImGui.text("Chunks rendered: " + chunksToRender.size());
+                        ImGui.text("Meshes to delete: " + meshesToDelete.size());
+                        ImGui.text("Meshes to update: " + meshesToUpdate.size());
+                    }
+                    ImGui.endTabItem();
                 }
-                ImGui.endTabItem();
+
+                if (ImGui.beginTabItem("Params")) {
+                    ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
+                    ImGui.sliderFloat("Time speed", timeSpeed, 0f, 1f);
+                    ImGui.endTabItem();
+                }
+
+                if (ImGui.beginTabItem("Textures")) {
+                    ImGui.image(texture.getId(), 256, 256);
+                    ImGui.sameLine();
+                    ImGui.image(fbo.getTextureId(), 256, 256);
+                    ImGui.image(shadowFbo.getDepthTextureId(), 256, 256);
+                    ImGui.endTabItem();
+                }
+
+                ImGui.endTabBar();
+
+                ImGui.end();
+
+                ImGui.render();
+                imGuiGl3.renderDrawData(ImGui.getDrawData());
             }
-
-            if (ImGui.beginTabItem("Params")) {
-                ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
-                ImGui.sliderFloat("Time speed", timeSpeed, 0f, 1f);
-                ImGui.endTabItem();
-            }
-
-            if (ImGui.beginTabItem("Textures")) {
-                ImGui.image(texture.getId(), 256, 256);
-                ImGui.sameLine();
-                ImGui.image(fbo.getTextureId(), 256, 256);
-                ImGui.image(shadowFbo.getDepthTextureId(), 256, 256);
-                ImGui.endTabItem();
-            }
-
-            ImGui.endTabBar();
-
-            updateCamera = !ImGui.isWindowHovered() && !ImGui.isWindowFocused();
-
-            ImGui.end();
-
-            ImGui.render();
-            imGuiGl3.renderDrawData(ImGui.getDrawData());
 
             input.update();
             glfwPollEvents();
@@ -365,11 +370,10 @@ public class Valkyrie {
         }
     }
 
-    private static int updateIndirectBuffer(GpuAllocator allocator, Vector3i camPos, int indirectBuffer, int chunkPositionBuffer, int shadowIndirectBuffer, int shadowChunkPositionBuffer) {
+    private static int updateIndirectBuffer(GpuAllocator allocator, Vector3i camPos, int indirectBuffer, int chunkPositionBuffer, int shadowIndirectBuffer) {
         var indirectCmdsList = new ArrayList<Integer>();
         var chunkPositions = new ArrayList<Long>();
         var shadowIndirectCmdsList = new ArrayList<Integer>();
-        var shadowChunkPositions = new ArrayList<Long>();
         allocator.getMeshes().forEach(mesh -> {
             indirectCmdsList.add(3);
             indirectCmdsList.add(mesh.getLength());
@@ -380,14 +384,15 @@ public class Valkyrie {
             var meshX = (mesh.getId() & 0xffff);
             var meshZ = (mesh.getId() >> 32) & 0xffff;
 
-            if (meshX > camPos.x + 2 || meshX < camPos.x - 2 || meshZ > camPos.z + 2 || meshZ < camPos.z - 2)
-                return;
-
             shadowIndirectCmdsList.add(3);
-            shadowIndirectCmdsList.add(mesh.getLength());
+            if (meshX > camPos.x + 5 || meshX < camPos.x - 5 || meshZ > camPos.z + 5 || meshZ < camPos.z - 5) {
+                shadowIndirectCmdsList.add(0);
+            } else {
+                shadowIndirectCmdsList.add(mesh.getLength());
+            }
+
             shadowIndirectCmdsList.add(0);
             shadowIndirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
-            shadowChunkPositions.add(mesh.getId());
         });
 
         int[] chunkPositionsArray = new int[chunkPositions.size() * 2];
@@ -395,13 +400,6 @@ public class Valkyrie {
             var position = chunkPositions.get(i);
             chunkPositionsArray[i * 2] = (int) (position & 0xffffffff);
             chunkPositionsArray[i * 2 + 1] = (int) (position >> 32);
-        }
-
-        int[] shadowChunkPositionsArray = new int[shadowChunkPositions.size() * 2];
-        for (int i = 0; i < shadowChunkPositions.size(); i++) {
-            var position = shadowChunkPositions.get(i);
-            shadowChunkPositionsArray[i * 2] = (int) (position & 0xffffffff);
-            shadowChunkPositionsArray[i * 2 + 1] = (int) (position >> 32);
         }
 
         int[] shadowIndirectCmds = new int[shadowIndirectCmdsList.size()];
@@ -423,11 +421,7 @@ public class Valkyrie {
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
         glBufferData(GL_DRAW_INDIRECT_BUFFER, shadowIndirectCmds, GL_DYNAMIC_DRAW);
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionBuffer);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, shadowChunkPositionsArray, GL_DYNAMIC_DRAW);
-
         drawLength = indirectCmds.length / 4;
-        shadowDrawLength = shadowIndirectCmds.length / 4;
         return indirectCmds.length / 4;
     }
 

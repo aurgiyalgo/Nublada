@@ -3,6 +3,7 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.flag.ImGuiMouseCursor;
 import org.joml.Matrix4f;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
@@ -16,7 +17,7 @@ public class Camera {
 
     private static final float SPEED = 64;
 
-    private final Vector3f position;
+    private final Vector3d position;
     private float rotationY, rotationX, roll;
 
     boolean mouseLocked = false;
@@ -32,7 +33,7 @@ public class Camera {
     private final Vector3f direction;
 
     public Camera() {
-        this.position = new Vector3f(1024 * 32 * 32, 180f, 1024 * 32 * 32);
+        this.position = new Vector3d(1024 * 32 * 32, 27286, 1024 * 32 * 32);
         this.direction = new Vector3f();
         rotationY = 90;
         updateDirection();
@@ -129,7 +130,7 @@ public class Camera {
     }
 
     public Vector3f getPosition() {
-        return position;
+        return new Vector3f((float) position.x, (float) position.y, (float) position.z);
     }
 
     public void setPosition(Vector3f position) {
@@ -167,8 +168,8 @@ public class Camera {
         matrix.identity();
         matrix.rotate((float) Math.toRadians(camera.getRotationY()), new Vector3f(1, 0, 0));
         matrix.rotate((float) Math.toRadians(camera.getRotationX()), new Vector3f(0, 1, 0));
-        Vector3f cameraPos = camera.getPosition();
-        Vector3f negativeCameraPos = new Vector3f(-cameraPos.x % 32, -cameraPos.y % 32, -cameraPos.z % 32);
+        var cameraPos = camera.position;
+        Vector3f negativeCameraPos = new Vector3f((float) (-cameraPos.x % 32), (float) (-cameraPos.y % 32), (float) (-cameraPos.z % 32));
         matrix.translate(negativeCameraPos);
         return matrix;
     }
@@ -186,7 +187,7 @@ public class Camera {
 
     public static Matrix4f createOrthoProjectionMatrix(int side) {
         var projectionMatrix = new Matrix4f();
-        projectionMatrix.ortho(-side/2, side/2, -side/2, side/2, 0.25f, 256f);
+        projectionMatrix.ortho(-side/2, side/2, -side/2, side/2, 0.25f, 1024f);
         return projectionMatrix;
     }
 
