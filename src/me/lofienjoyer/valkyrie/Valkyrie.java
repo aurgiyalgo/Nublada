@@ -23,6 +23,8 @@ public class Valkyrie {
 
     public static final Object lock = new Object();
 
+    public static final int SHADOW_MAP_RESOLUTION = 1024;
+
     public static List<Long> meshesToDelete = new ArrayList<>();
     public static List<Chunk> chunksToRender = new ArrayList<>();
     public static final List<MeshToUpdate> meshesToUpdate = new ArrayList<>();
@@ -222,7 +224,7 @@ public class Valkyrie {
             var sunAngle = Math.PI * 2 * worldTime - Math.PI / 2;
 
             // Shadow pass
-            glViewport(0, 0, 2048, 2048);
+            glViewport(0, 0, 1024, 1024);
             glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
             glClear(GL_DEPTH_BUFFER_BIT);
             var shadowCameraPosition = new Vector3f();

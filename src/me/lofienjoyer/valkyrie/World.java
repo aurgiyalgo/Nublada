@@ -30,7 +30,7 @@ public class World {
         var random = new SplittableRandom(2);
         this.noise = new FastNoiseLite(random.nextInt());
         noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
-        noise.SetFrequency(1 / 256f);
+        noise.SetFrequency(1 / 128f);
         this.caveNoise = new FastNoiseLite(random.nextInt());
         caveNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
         caveNoise.SetFrequency(1 / 128f);
@@ -66,7 +66,7 @@ public class World {
         LightManager.propagateGreen(this, greenLightNodes);
         LightManager.propagateBlue(this, blueLightNodes);
 
-        final var worldSide = 6;
+        final var worldSide = 16;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
         var meshesToDelete = new ArrayList<Long>();
@@ -126,13 +126,9 @@ public class World {
             var heightMap = getOctaves(chunkX * 32, chunkZ * 32);
             for (int x = 0; x < 32; x++) {
                 for (int z = 0; z < 32; z++) {
-                    var height = heightMap[x | z << 5];
-                    height *= 120;
-                    var localMax = Math.min(height, 128);
-                    for (int y = 0; y < localMax; y++) {
-                        if (y < random.nextInt(5) + 1) {
-                            chunk.setBlock(x, y, z, 5);
-                        } else if (y > height - 3) {
+                    var height = heightMap[x | z << 5] * 90 + 30;
+                    for (int y = 0; y < height; y++) {
+                        if (y > height - 3) {
                             chunk.setBlock(x, y, z, 2);
                         } else {
                             chunk.setBlock(x, y, z, 1);
@@ -144,16 +140,22 @@ public class World {
                             chunk.setBlock(x, y, z, 0);
                     }
 
-                    if (localMax > 0 && chunk.getBlock(x, (int) localMax, z) != 0 && random.nextInt(60) == 0 && localMax + 7 < 32 && x < 31 && x > 1 && z < 31 && z > 1) {
+                    for (int y = 0; y < height; y++) {
+                        if (y < random.nextInt(5) + 1) {
+                            chunk.setBlock(x, y, z, 5);
+                        }
+                    }
+
+                    if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && random.nextInt(30) == 0 && height + 7 < 128 && x < 31 && x > 1 && z < 31 && z > 1) {
                         for (int i = 0; i < 4; i++) {
-                            chunk.setBlock(x, (int) (localMax + i + 1), z, 4);
+                            chunk.setBlock(x, (int) (height + i + 1), z, 4);
                         }
 
                         for (int i = -2; i <= 2; i++) {
                             for (int j = -2; j <= 2; j++) {
                                 for (int k = 0; k < 5; k++) {
                                     if (random.nextInt(1 + k * 2) == 0)
-                                        chunk.setBlock(x + i, (int) (localMax + 3 + k), z + j, 3);
+                                        chunk.setBlock(x + i, (int) (height + 3 + k), z + j, 3);
                                 }
                             }
                         }
@@ -272,7 +274,7 @@ public class World {
 
         var blockX = Math.abs(x - position.x * CHUNK_SIDE);
         var blockZ = Math.abs(z - position.y * CHUNK_SIDE);
-        int index = blockX | y << 5 | blockZ << 10;
+        int index = blockX | y << 5 | blockZ << 12;
         redLightRemovalNodes.add(new LightRemovalNode(index, chunk.getRedLight(blockX, y, blockZ), chunk));
         greenLightRemovalNodes.add(new LightRemovalNode(index, chunk.getGreenLight(blockX, y, blockZ), chunk));
         blueLightRemovalNodes.add(new LightRemovalNode(index, chunk.getBlueLight(blockX, y, blockZ), chunk));
@@ -301,7 +303,8 @@ public class World {
         chunk.setRedLight(blockX, y, blockZ, light >> 8);
         chunk.setGreenLight(blockX, y, blockZ, (light >> 4) & 0xf);
         chunk.setBlueLight(blockX, y, blockZ, light & 0xf);
-        int index = blockX | y << 5 | blockZ << 10;
+        int index = blockX | y << 5 | blockZ << 12;
+        System.out.println(blockZ);
         redLightNodes.add(new LightNode(index, chunk));
         greenLightNodes.add(new LightNode(index, chunk));
         blueLightNodes.add(new LightNode(index, chunk));

@@ -146,36 +146,32 @@ public class GreedyMesher {
                                     x[v] = j;
 
                                     int vertex;
-                                    int texture = 0;
+                                    int texture = (mask[n] & 0xffff) - 1;
 
                                     // Texture re-orientation based on the direction
                                     if (d == 2) {
                                         if (!backFace) {
                                             vertex = getData(x[0], x[1], x[2] - 1, 0, w, h);
-                                            texture |= h - 1 << 16;
                                         } else {
                                             vertex = getData(x[0], x[1], x[2], 1, w, h);
-                                            texture |= h - 1 << 16;
                                         }
+                                        texture |= (h - 1) << 16;
                                     } else if (d == 0) {
                                         if (backFace) {
                                             vertex = getData(x[0], x[1], x[2], 2, h, w);
-                                            texture |= w - 1 << 16;
                                         } else {
                                             vertex = getData(x[0] - 1, x[1], x[2], 3, h, w);
-                                            texture |= w - 1 << 16;
                                         }
+                                        texture |= (w - 1) << 16;
                                     } else {
                                         if (!backFace) {
                                             vertex = getData(x[0], x[1] - 1, x[2], 4, h, w);
-                                            texture |= w - 1 << 16;
                                         } else {
                                             vertex = getData(x[0], x[1], x[2], 5, h, w);
-                                            texture |= w - 1 << 16;
                                         }
+                                        texture |= (w - 1) << 16;
                                     }
 
-                                    texture |= mask[n] - 1;
                                     positions.add(vertex);
                                     positions.add(texture);
                                 }
@@ -209,7 +205,7 @@ public class GreedyMesher {
     }
 
     private static int getData(int x, int y, int z, int face, int width, int height) {
-        return face << 20 | z + 1 << 14 | x + 1 << 8 | y + 1 | width - 1 << 23;
+        return face << 20 | z + 1 << 14 | x + 1 << 8 | y + 1 | (width - 1) << 23;
     }
 
 }

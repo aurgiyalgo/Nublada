@@ -7,7 +7,7 @@ in vec3 passLight;
 in float passFace;
 
 const float border = 0.03125;
-const vec2 texelSize = vec2(1 / 2048.0, 1 / 2048.0);
+const vec2 texelSize = vec2(1 / 1024.0, 1 / 1024.0);
 
 layout (binding = 0) uniform sampler2D textureSampler;
 layout (binding = 1) uniform sampler2D shadowSampler;
