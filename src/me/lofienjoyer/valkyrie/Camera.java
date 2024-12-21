@@ -33,7 +33,7 @@ public class Camera {
     private final Vector3f direction;
 
     public Camera() {
-        this.position = new Vector3d(1024 * 32 * 32, 27286, 1024 * 32 * 32);
+        this.position = new Vector3d(1024 * 32 * 32, 64, 1024 * 32 * 32);
         this.direction = new Vector3f();
         rotationY = 90;
         updateDirection();

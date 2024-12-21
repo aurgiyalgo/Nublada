@@ -16,7 +16,7 @@ public class LightManager {
             int lightZ = pos >> 10;
 
             if (lightX - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
                 int minusXLevel = neighbor.getRedLight(31, lightY, lightZ);
                 if (minusXLevel != 0 && minusXLevel < lightLevel) {
                     neighbor.setRedLight(31, lightY, lightZ, 0);
@@ -39,7 +39,7 @@ public class LightManager {
             }
 
             if (lightX + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
                 int plusXLevel = neighbor.getRedLight(0, lightY, lightZ);
                 if (plusXLevel != 0 && plusXLevel < lightLevel) {
                     neighbor.setRedLight(0, lightY, lightZ, 0);
@@ -62,16 +62,7 @@ public class LightManager {
             }
 
             if (lightY - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1, lightChunk.getPosition().z);
-                int minusYLevel = neighbor.getRedLight(lightX, 31, lightZ);
-                if (minusYLevel != 0 && minusYLevel < lightLevel) {
-                    neighbor.setRedLight(lightX, 31, lightZ, 0);
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightRemovalNodes.add(new LightRemovalNode(newIndex, minusYLevel, neighbor));
-                } else {
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 int minusYLevel = lightChunk.getRedLight(lightX , lightY - 1, lightZ);
                 if (minusYLevel != 0 && minusYLevel < lightLevel) {
@@ -85,16 +76,7 @@ public class LightManager {
             }
 
             if (lightY + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1, lightChunk.getPosition().z);
-                int plusYLevel = neighbor.getRedLight(lightX, 0, lightZ);
-                if (plusYLevel != 0 && plusYLevel < lightLevel) {
-                    neighbor.setRedLight(lightX, 0, lightZ, 0);
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightRemovalNodes.add(new LightRemovalNode(newIndex, plusYLevel, neighbor));
-                } else {
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 int plusYLevel = lightChunk.getRedLight(lightX , lightY + 1, lightZ);
                 if (plusYLevel != 0 && plusYLevel < lightLevel) {
@@ -108,7 +90,7 @@ public class LightManager {
             }
 
             if (lightZ - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z - 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
                 int minusZLevel = neighbor.getRedLight(lightX, lightY, 31);
                 if (minusZLevel != 0 && minusZLevel < lightLevel) {
                     neighbor.setRedLight(lightX, lightY, 31, 0);
@@ -131,7 +113,7 @@ public class LightManager {
             }
 
             if (lightZ + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z + 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
                 int minusZLevel = neighbor.getRedLight(lightX, lightY, 0);
                 if (minusZLevel != 0 && minusZLevel < lightLevel) {
                     neighbor.setRedLight(lightX, lightY, 0, 0);
@@ -167,7 +149,7 @@ public class LightManager {
             int lightZ = pos >> 10;
 
             if (lightX - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
                 int minusXLevel = neighbor.getGreenLight(31, lightY, lightZ);
                 if (minusXLevel != 0 && minusXLevel < lightLevel) {
                     neighbor.setGreenLight(31, lightY, lightZ, 0);
@@ -190,7 +172,7 @@ public class LightManager {
             }
 
             if (lightX + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
                 int plusXLevel = neighbor.getGreenLight(0, lightY, lightZ);
                 if (plusXLevel != 0 && plusXLevel < lightLevel) {
                     neighbor.setGreenLight(0, lightY, lightZ, 0);
@@ -213,16 +195,7 @@ public class LightManager {
             }
 
             if (lightY - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1, lightChunk.getPosition().z);
-                int minusYLevel = neighbor.getGreenLight(lightX, 31, lightZ);
-                if (minusYLevel != 0 && minusYLevel < lightLevel) {
-                    neighbor.setGreenLight(lightX, 31, lightZ, 0);
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightRemovalNodes.add(new LightRemovalNode(newIndex, minusYLevel, neighbor));
-                } else {
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 int minusYLevel = lightChunk.getGreenLight(lightX , lightY - 1, lightZ);
                 if (minusYLevel != 0 && minusYLevel < lightLevel) {
@@ -236,16 +209,7 @@ public class LightManager {
             }
 
             if (lightY + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1, lightChunk.getPosition().z);
-                int plusYLevel = neighbor.getGreenLight(lightX, 0, lightZ);
-                if (plusYLevel != 0 && plusYLevel < lightLevel) {
-                    neighbor.setGreenLight(lightX, 0, lightZ, 0);
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightRemovalNodes.add(new LightRemovalNode(newIndex, plusYLevel, neighbor));
-                } else {
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 int plusYLevel = lightChunk.getGreenLight(lightX , lightY + 1, lightZ);
                 if (plusYLevel != 0 && plusYLevel < lightLevel) {
@@ -259,7 +223,7 @@ public class LightManager {
             }
 
             if (lightZ - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z - 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
                 int minusZLevel = neighbor.getGreenLight(lightX, lightY, 31);
                 if (minusZLevel != 0 && minusZLevel < lightLevel) {
                     neighbor.setGreenLight(lightX, lightY, 31, 0);
@@ -282,7 +246,7 @@ public class LightManager {
             }
 
             if (lightZ + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z + 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
                 int minusZLevel = neighbor.getGreenLight(lightX, lightY, 0);
                 if (minusZLevel != 0 && minusZLevel < lightLevel) {
                     neighbor.setGreenLight(lightX, lightY, 0, 0);
@@ -318,7 +282,7 @@ public class LightManager {
             int lightZ = pos >> 10;
 
             if (lightX - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
                 int minusXLevel = neighbor.getBlueLight(31, lightY, lightZ);
                 if (minusXLevel != 0 && minusXLevel < lightLevel) {
                     neighbor.setBlueLight(31, lightY, lightZ, 0);
@@ -341,7 +305,7 @@ public class LightManager {
             }
 
             if (lightX + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
                 int plusXLevel = neighbor.getBlueLight(0, lightY, lightZ);
                 if (plusXLevel != 0 && plusXLevel < lightLevel) {
                     neighbor.setBlueLight(0, lightY, lightZ, 0);
@@ -364,16 +328,7 @@ public class LightManager {
             }
 
             if (lightY - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1, lightChunk.getPosition().z);
-                int minusYLevel = neighbor.getBlueLight(lightX, 31, lightZ);
-                if (minusYLevel != 0 && minusYLevel < lightLevel) {
-                    neighbor.setBlueLight(lightX, 31, lightZ, 0);
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightRemovalNodes.add(new LightRemovalNode(newIndex, minusYLevel, neighbor));
-                } else {
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 int minusYLevel = lightChunk.getBlueLight(lightX , lightY - 1, lightZ);
                 if (minusYLevel != 0 && minusYLevel < lightLevel) {
@@ -387,16 +342,7 @@ public class LightManager {
             }
 
             if (lightY + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1, lightChunk.getPosition().z);
-                int plusYLevel = neighbor.getBlueLight(lightX, 0, lightZ);
-                if (plusYLevel != 0 && plusYLevel < lightLevel) {
-                    neighbor.setBlueLight(lightX, 0, lightZ, 0);
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightRemovalNodes.add(new LightRemovalNode(newIndex, plusYLevel, neighbor));
-                } else {
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 int plusYLevel = lightChunk.getBlueLight(lightX , lightY + 1, lightZ);
                 if (plusYLevel != 0 && plusYLevel < lightLevel) {
@@ -410,7 +356,7 @@ public class LightManager {
             }
 
             if (lightZ - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z - 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
                 int minusZLevel = neighbor.getBlueLight(lightX, lightY, 31);
                 if (minusZLevel != 0 && minusZLevel < lightLevel) {
                     neighbor.setBlueLight(lightX, lightY, 31, 0);
@@ -433,7 +379,7 @@ public class LightManager {
             }
 
             if (lightZ + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z + 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
                 int minusZLevel = neighbor.getBlueLight(lightX, lightY, 0);
                 if (minusZLevel != 0 && minusZLevel < lightLevel) {
                     neighbor.setBlueLight(lightX, lightY, 0, 0);
@@ -470,7 +416,7 @@ public class LightManager {
             int lightLevel = lightChunk.getRedLight(lightX, lightY, lightZ);
 
             if (lightX - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
                 if (neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getRedLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
                     neighbor.setRedLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
                     int newIndex = 31 | lightY << 5 | lightZ << 10;
@@ -485,7 +431,7 @@ public class LightManager {
             }
 
             if (lightX + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
                 if (neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getRedLight(0, lightY, lightZ) + 2 <= lightLevel) {
                     neighbor.setRedLight(0, lightY, lightZ, lightLevel - 1);
                     int newIndex = 0 | lightY << 5 | lightZ << 10;
@@ -500,12 +446,7 @@ public class LightManager {
             }
 
             if (lightY - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1, lightChunk.getPosition().z);
-                if (neighbor.getBlock(lightX, 31, lightZ) == 0 && neighbor.getRedLight(lightX, 31, lightZ) + 2 <= lightLevel) {
-                    neighbor.setRedLight(lightX, 31, lightZ, lightLevel - 1);
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getRedLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setRedLight(lightX, lightY - 1, lightZ, lightLevel - 1);
@@ -515,12 +456,7 @@ public class LightManager {
             }
 
             if (lightY + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1, lightChunk.getPosition().z);
-                if (neighbor.getBlock(lightX, 0, lightZ) == 0 && neighbor.getRedLight(lightX, 0, lightZ) + 2 <= lightLevel) {
-                    neighbor.setRedLight(lightX, 0, lightZ, lightLevel - 1);
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getRedLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setRedLight(lightX, lightY + 1, lightZ, lightLevel - 1);
@@ -530,7 +466,7 @@ public class LightManager {
             }
 
             if (lightZ - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z - 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
                 if (neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getRedLight(lightX, lightY, 31) + 2 <= lightLevel) {
                     neighbor.setRedLight(lightX, lightY, 31, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | 31 << 10;
@@ -545,7 +481,7 @@ public class LightManager {
             }
 
             if (lightZ + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z + 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
                 if (neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getRedLight(lightX, lightY, 0) + 2 <= lightLevel) {
                     neighbor.setRedLight(lightX, lightY, 0, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | 0 << 10;
@@ -576,7 +512,7 @@ public class LightManager {
             int lightLevel = lightChunk.getGreenLight(lightX, lightY, lightZ);
 
             if (lightX - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
                 if (neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getGreenLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
                     neighbor.setGreenLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
                     int newIndex = 31 | lightY << 5 | lightZ << 10;
@@ -591,7 +527,7 @@ public class LightManager {
             }
 
             if (lightX + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
                 if (neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getGreenLight(0, lightY, lightZ) + 2 <= lightLevel) {
                     neighbor.setGreenLight(0, lightY, lightZ, lightLevel - 1);
                     int newIndex = 0 | lightY << 5 | lightZ << 10;
@@ -606,12 +542,7 @@ public class LightManager {
             }
 
             if (lightY - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1, lightChunk.getPosition().z);
-                if (neighbor.getBlock(lightX, 31, lightZ) == 0 && neighbor.getGreenLight(lightX, 31, lightZ) + 2 <= lightLevel) {
-                    neighbor.setGreenLight(lightX, 31, lightZ, lightLevel - 1);
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getGreenLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setGreenLight(lightX, lightY - 1, lightZ, lightLevel - 1);
@@ -621,12 +552,7 @@ public class LightManager {
             }
 
             if (lightY + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1, lightChunk.getPosition().z);
-                if (neighbor.getBlock(lightX, 0, lightZ) == 0 && neighbor.getGreenLight(lightX, 0, lightZ) + 2 <= lightLevel) {
-                    neighbor.setGreenLight(lightX, 0, lightZ, lightLevel - 1);
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getGreenLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setGreenLight(lightX, lightY + 1, lightZ, lightLevel - 1);
@@ -636,7 +562,7 @@ public class LightManager {
             }
 
             if (lightZ - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z - 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
                 if (neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getGreenLight(lightX, lightY, 31) + 2 <= lightLevel) {
                     neighbor.setGreenLight(lightX, lightY, 31, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | 31 << 10;
@@ -651,7 +577,7 @@ public class LightManager {
             }
 
             if (lightZ + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z + 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
                 if (neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getGreenLight(lightX, lightY, 0) + 2 <= lightLevel) {
                     neighbor.setGreenLight(lightX, lightY, 0, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | 0 << 10;
@@ -682,7 +608,7 @@ public class LightManager {
             int lightLevel = lightChunk.getBlueLight(lightX, lightY, lightZ);
 
             if (lightX - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
                 if (neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getBlueLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
                     neighbor.setBlueLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
                     int newIndex = 31 | lightY << 5 | lightZ << 10;
@@ -697,7 +623,7 @@ public class LightManager {
             }
 
             if (lightX + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y, lightChunk.getPosition().z);
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
                 if (neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getBlueLight(0, lightY, lightZ) + 2 <= lightLevel) {
                     neighbor.setBlueLight(0, lightY, lightZ, lightLevel - 1);
                     int newIndex = 0 | lightY << 5 | lightZ << 10;
@@ -712,12 +638,7 @@ public class LightManager {
             }
 
             if (lightY - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1, lightChunk.getPosition().z);
-                if (neighbor.getBlock(lightX, 31, lightZ) == 0 && neighbor.getBlueLight(lightX, 31, lightZ) + 2 <= lightLevel) {
-                    neighbor.setBlueLight(lightX, 31, lightZ, lightLevel - 1);
-                    int newIndex = lightX | 31 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getBlueLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setBlueLight(lightX, lightY - 1, lightZ, lightLevel - 1);
@@ -727,12 +648,7 @@ public class LightManager {
             }
 
             if (lightY + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1, lightChunk.getPosition().z);
-                if (neighbor.getBlock(lightX, 0, lightZ) == 0 && neighbor.getBlueLight(lightX, 0, lightZ) + 2 <= lightLevel) {
-                    neighbor.setBlueLight(lightX, 0, lightZ, lightLevel - 1);
-                    int newIndex = lightX | 0 << 5 | lightZ << 10;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
-                }
+
             } else {
                 if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getBlueLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setBlueLight(lightX, lightY + 1, lightZ, lightLevel - 1);
@@ -742,7 +658,7 @@ public class LightManager {
             }
 
             if (lightZ - 1 < 0) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z - 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
                 if (neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getBlueLight(lightX, lightY, 31) + 2 <= lightLevel) {
                     neighbor.setBlueLight(lightX, lightY, 31, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | 31 << 10;
@@ -757,7 +673,7 @@ public class LightManager {
             }
 
             if (lightZ + 1 > 31) {
-                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y, lightChunk.getPosition().z + 1);
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
                 if (neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getBlueLight(lightX, lightY, 0) + 2 <= lightLevel) {
                     neighbor.setBlueLight(lightX, lightY, 0, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | 0 << 10;

@@ -38,12 +38,12 @@ void main()
     int x = int(data >> 5);
     int y = int(data & 0x1fu) - 1;
     vec3 chunkPosition = getChunkPosition(gl_DrawID) - camChunkPos;
-    float positionX = int((position.x >> 6) & 0x3fu);
-    float positionY = int(position.x & 0x3fu);
-    float positionZ = int((position.x >> 12) & 0x3fu);
-    int face = int((position.x >> 18) & 0x7u);
-    int width = int((position.x >> 21) & 0x1fu) + 1;
-    int height = int((position.x >> 26) & 0x1fu) + 1;
+    float positionX = int((position.x >> 8) & 0x3fu);
+    float positionY = int(position.x & 0xffu);
+    float positionZ = int((position.x >> 14) & 0x3fu);
+    int face = int((position.x >> 20) & 0x7u);
+    int width = int((position.x >> 23) & 0x7fu) + 1;
+    int height = int((position.y >> 16) & 0x7fu) + 1;
     int texture = int(position.y & 0xfu);
     if (texture == 2) {
         positionX += (sin((positionX + worldTime) * 60) + 1) / 64;
