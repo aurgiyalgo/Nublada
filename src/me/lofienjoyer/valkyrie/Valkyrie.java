@@ -189,7 +189,7 @@ public class Valkyrie {
                     }
                 }
 
-                if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_2)) {
+                if (Input.isButtonPressed(GLFW_MOUSE_BUTTON_2)) {
                     var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
                     if (position != null) {
                         world.setBlock(6, position);
@@ -224,27 +224,27 @@ public class Valkyrie {
             var sunAngle = Math.PI * 2 * worldTime - Math.PI / 2;
 
             // Shadow pass
-            glViewport(0, 0, 1024, 1024);
-            glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
-            glClear(GL_DEPTH_BUFFER_BIT);
+//            glViewport(0, 0, 1024, 1024);
+//            glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
+//            glClear(GL_DEPTH_BUFFER_BIT);
             var shadowCameraPosition = new Vector3f();
             shadowCameraPosition.x += (float) Math.cos(sunAngle) * 25;
             shadowCameraPosition.y += (float) Math.sin(sunAngle) * 512;
             shadowCameraPosition.z += (float) Math.cos(sunAngle) * 512;
-            shadowCamera.setPosition(new Vector3f(shadowCameraPosition));
-            shadowProgram.bind();
-            shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
-            shadowProgram.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
-            glBindTexture(GL_TEXTURE_2D, texture.getId());
-            glDisable(GL_CULL_FACE);
-            glEnable(GL_DEPTH_TEST);
-            glBindVertexArray(vaoId);
-            glBindBuffer(GL_ARRAY_BUFFER, vboId);
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
-            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
-            glEnable(GL_CULL_FACE);
+//            shadowCamera.setPosition(new Vector3f(shadowCameraPosition));
+//            shadowProgram.bind();
+//            shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
+//            shadowProgram.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
+//            glBindTexture(GL_TEXTURE_2D, texture.getId());
+//            glDisable(GL_CULL_FACE);
+//            glEnable(GL_DEPTH_TEST);
+//            glBindVertexArray(vaoId);
+//            glBindBuffer(GL_ARRAY_BUFFER, vboId);
+//            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
+//            glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
+//            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
+//            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+//            glEnable(GL_CULL_FACE);
 
             // Color pass
             glViewport(0, 0, width, height);
@@ -260,7 +260,7 @@ public class Valkyrie {
             program.setUniform("dayTime", worldTime);
             program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
             program.setUniform("timeOfDay", timeOfDay);
-            program.setUniform("light", light);
+            program.setUniform("light", (float) Math.pow(light, 0.3));
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.getId());
             glActiveTexture(GL_TEXTURE1);

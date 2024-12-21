@@ -403,6 +403,147 @@ public class LightManager {
         }
     }
 
+    public static void removeSun(World world, Queue<LightRemovalNode> lightRemovalNodes, Queue<LightNode> lightNodes) {
+        while (!lightRemovalNodes.isEmpty()) {
+            var node = lightRemovalNodes.poll();
+            var pos = node.index();
+            var lightLevel = node.val();
+            var lightChunk = node.chunk();
+
+            int lightX = pos & 0x1f;
+            int lightY = (pos >> 5) & 0x7f;
+            int lightZ = pos >> 12;
+
+            if (lightX - 1 < 0) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
+                if (neighbor != null) {
+                    int minusXLevel = neighbor.getSunLight(31, lightY, lightZ);
+                    if (minusXLevel != 0 && minusXLevel < lightLevel) {
+                        neighbor.setSunLight(31, lightY, lightZ, 0);
+                        int newIndex = 31 | lightY << 5 | lightZ << 12;
+                        lightRemovalNodes.add(new LightRemovalNode(newIndex, minusXLevel, neighbor));
+                    } else {
+                        int newIndex = 31 | lightY << 5 | lightZ << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
+                }
+            } else {
+                int minusXLevel = lightChunk.getSunLight(lightX - 1, lightY, lightZ);
+                if (minusXLevel != 0 && minusXLevel < lightLevel) {
+                    lightChunk.setSunLight(lightX - 1, lightY, lightZ, 0);
+                    int newIndex = (lightX - 1) | lightY << 5 | lightZ << 12;
+                    lightRemovalNodes.add(new LightRemovalNode(newIndex, minusXLevel, lightChunk));
+                } else {
+                    int newIndex = (lightX - 1) | lightY << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightX + 1 > 31) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
+                if (neighbor != null) {
+                    int plusXLevel = neighbor.getSunLight(0, lightY, lightZ);
+                    if (plusXLevel != 0 && plusXLevel < lightLevel) {
+                        neighbor.setSunLight(0, lightY, lightZ, 0);
+                        int newIndex = 0 | lightY << 5 | lightZ << 12;
+                        lightRemovalNodes.add(new LightRemovalNode(newIndex, plusXLevel, neighbor));
+                    } else {
+                        int newIndex = 0 | lightY << 5 | lightZ << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
+                }
+            } else {
+                int plusXLevel = lightChunk.getSunLight(lightX + 1, lightY, lightZ);
+                if (plusXLevel != 0 && plusXLevel < lightLevel) {
+                    lightChunk.setSunLight(lightX + 1, lightY, lightZ, 0);
+                    int newIndex = (lightX + 1) | lightY << 5 | lightZ << 12;
+                    lightRemovalNodes.add(new LightRemovalNode(newIndex, plusXLevel, lightChunk));
+                } else {
+                    int newIndex = (lightX + 1) | lightY << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightY - 1 < 0) {
+
+            } else {
+                int minusYLevel = lightChunk.getSunLight(lightX , lightY - 1, lightZ);
+                if (minusYLevel != 0 && minusYLevel < lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY - 1, lightZ, 0);
+                    int newIndex = lightX | (lightY - 1) << 5 | lightZ << 12;
+                    lightRemovalNodes.add(new LightRemovalNode(newIndex, minusYLevel, lightChunk));
+                } else {
+                    int newIndex = lightX | (lightY - 1) << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightY + 1 > 127) {
+
+            } else {
+                int plusYLevel = lightChunk.getSunLight(lightX , lightY + 1, lightZ);
+                if (plusYLevel != 0 && plusYLevel < lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY + 1, lightZ, 0);
+                    int newIndex = lightX | (lightY + 1) << 5 | lightZ << 12;
+                    lightRemovalNodes.add(new LightRemovalNode(newIndex, plusYLevel, lightChunk));
+                } else {
+                    int newIndex = lightX | (lightY + 1) << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightZ - 1 < 0) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
+                if (neighbor != null) {
+                    int minusZLevel = neighbor.getSunLight(lightX, lightY, 31);
+                    if (minusZLevel != 0 && minusZLevel < lightLevel) {
+                        neighbor.setSunLight(lightX, lightY, 31, 0);
+                        int newIndex = lightX | lightY << 5 | 31 << 12;
+                        lightRemovalNodes.add(new LightRemovalNode(newIndex, minusZLevel, neighbor));
+                    } else {
+                        int newIndex = lightX | lightY << 5 | 31 << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
+                }
+            } else {
+                int minusZLevel = lightChunk.getSunLight(lightX , lightY, lightZ - 1);
+                if (minusZLevel != 0 && minusZLevel < lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY, lightZ - 1, 0);
+                    int newIndex = lightX | lightY << 5 | (lightZ - 1) << 12;
+                    lightRemovalNodes.add(new LightRemovalNode(newIndex, minusZLevel, lightChunk));
+                } else {
+                    int newIndex = lightX | lightY << 5 | (lightZ - 1) << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightZ + 1 > 31) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
+                if (neighbor != null) {
+                    int minusZLevel = neighbor.getSunLight(lightX, lightY, 0);
+                    if (minusZLevel != 0 && minusZLevel < lightLevel) {
+                        neighbor.setSunLight(lightX, lightY, 0, 0);
+                        int newIndex = lightX | lightY << 5 | 0 << 12;
+                        lightRemovalNodes.add(new LightRemovalNode(newIndex, minusZLevel, neighbor));
+                    } else {
+                        int newIndex = lightX | lightY << 5 | 0 << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
+                }
+            } else {
+                int minusZLevel = lightChunk.getSunLight(lightX , lightY, lightZ + 1);
+                if (minusZLevel != 0 && minusZLevel < lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY, lightZ + 1, 0);
+                    int newIndex = lightX | lightY << 5 | (lightZ + 1) << 12;
+                    lightRemovalNodes.add(new LightRemovalNode(newIndex, minusZLevel, lightChunk));
+                } else {
+                    int newIndex = lightX | lightY << 5 | (lightZ + 1) << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+        }
+    }
+
     public static void propagateRed(World world, Queue<LightNode> lightNodes) {
         while (!lightNodes.isEmpty()) {
             var node = lightNodes.poll();
@@ -688,6 +829,100 @@ public class LightManager {
             }
 
             lightChunk.setDirty(true);
+        }
+    }
+
+    public static void propagateSun(World world, Queue<LightNode> lightNodes) {
+        while (!lightNodes.isEmpty()) {
+            var node = lightNodes.poll();
+
+            int pos = node.position();
+            var lightChunk = node.chunk();
+
+            int lightX = pos & 0x1f;
+            int lightY = (pos >> 5) & 0x7f;
+            int lightZ = pos >> 12;
+            int lightLevel = lightChunk.getSunLight(lightX, lightY, lightZ);
+
+            if (lightX - 1 < 0) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
+                if (neighbor != null && neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getSunLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setSunLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
+                    int newIndex = 31 | lightY << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX - 1, lightY, lightZ) == 0 && lightChunk.getSunLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setSunLight(lightX - 1, lightY, lightZ, lightLevel - 1);
+                    int newIndex = (lightX - 1) | lightY << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightX + 1 > 31) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
+                if (neighbor != null && neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getSunLight(0, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setSunLight(0, lightY, lightZ, lightLevel - 1);
+                    int newIndex = 0 | lightY << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX + 1, lightY, lightZ) == 0 && lightChunk.getSunLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setSunLight(lightX + 1, lightY, lightZ, lightLevel - 1);
+                    int newIndex = (lightX + 1) | lightY << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightY - 1 < 0) {
+
+            } else {
+                if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getSunLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY - 1, lightZ, lightLevel - 1);
+                    int newIndex = lightX | (lightY - 1) << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightY + 1 > 127) {
+
+            } else {
+                if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getSunLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY + 1, lightZ, lightLevel - 1);
+                    int newIndex = lightX | (lightY + 1) << 5 | lightZ << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightZ - 1 < 0) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
+                if (neighbor != null && neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getSunLight(lightX, lightY, 31) + 2 <= lightLevel) {
+                    neighbor.setSunLight(lightX, lightY, 31, lightLevel - 1);
+                    int newIndex = lightX | lightY << 5 | 31 << 12;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX, lightY, lightZ - 1) == 0 && lightChunk.getSunLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY, lightZ - 1, lightLevel - 1);
+                    int newIndex = lightX | lightY << 5 | (lightZ - 1) << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
+
+            if (lightZ + 1 > 31) {
+                var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
+                if (neighbor != null && neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getSunLight(lightX, lightY, 0) + 2 <= lightLevel) {
+                    neighbor.setSunLight(lightX, lightY, 0, lightLevel - 1);
+                    int newIndex = lightX | lightY << 5 | 0 << 12;
+                    lightNodes.add(new LightNode(newIndex, neighbor));
+                }
+            } else {
+                if (lightChunk.getBlock(lightX, lightY, lightZ + 1) == 0 && lightChunk.getSunLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
+                    lightChunk.setSunLight(lightX, lightY, lightZ + 1, lightLevel - 1);
+                    int newIndex = lightX | lightY << 5 | (lightZ + 1) << 12;
+                    lightNodes.add(new LightNode(newIndex, lightChunk));
+                }
+            }
         }
     }
 

@@ -3,7 +3,7 @@ out vec4 FragColor;
 
 in vec2 textureCoords;
 in vec4 outData;
-in vec3 passLight;
+in vec4 passLight;
 in float passFace;
 
 const float border = 0.03125;
@@ -72,9 +72,9 @@ void main()
         discard;
     }
 
-    float dotProduct = dot(fs_in.Normal, lightDir);
-    float shadow = calculateShadow(fs_in.FragPosLightSpace, dotProduct);
-    float s = max((1 - shadow) * max(sqrt(light), 0.1) * dotProduct, 0.25 * min(sqrt(light) * 1.5, 1) + 0.125);
+    float dotProduct = max(dot(fs_in.Normal, lightDir), 0.75);
+    float shadow = 1 - passLight.a;
+    float s = max(0.125, passLight.a * light * dotProduct);
 
     FragColor = vec4((vec3(color.r * max(passLight.r, s), color.g * max(passLight.g, s), color.b * max(passLight.b, s)) * outData.a), 1.0);
 }

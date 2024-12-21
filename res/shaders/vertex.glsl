@@ -5,7 +5,7 @@ layout (location = 1) in uvec2 position;
 
 out vec2 textureCoords;
 out vec4 outData;
-out vec3 passLight;
+out vec4 passLight;
 out vec3 outCamPos;
 
 uniform mat4 proj;
@@ -88,7 +88,7 @@ void main()
     }
     textureCoords = vec2(x, y + 1);
     outData = vec4(x * width, y * height, texture, shadow[face]);
-    passLight = vec3((light >> 8) & 0xf, (light >> 4) & 0xf, light & 0xf) / 16;
+    passLight = vec4((light >> 9) & 0x7, (light >> 6) & 0x7, (light >> 3) & 0x7, light & 0x7) / 8;
 
     vs_out.FragPos = vec3(gl_Position.xyz);
     vs_out.Normal = normal[face];

@@ -2,11 +2,9 @@ package me.lofienjoyer.valkyrie;
 
 import org.joml.Vector2i;
 import org.joml.Vector3f;
-import org.joml.Vector3i;
 import org.joml.Vector4i;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 public class World {
 
@@ -19,11 +17,14 @@ public class World {
     private final Queue<LightNode> redLightNodes;
     private final Queue<LightNode> greenLightNodes;
     private final Queue<LightNode> blueLightNodes;
+    private final Queue<LightNode> sunLightNodes;
     private final Queue<LightRemovalNode> redLightRemovalNodes;
     private final Queue<LightRemovalNode> greenLightRemovalNodes;
     private final Queue<LightRemovalNode> blueLightRemovalNodes;
+    private final Queue<LightRemovalNode> sunLightRemovalNodes;
     private final Queue<Vector4i> blocksToPlace;
     private final Queue<Vector4i> lightsToPlace;
+    private final Set<Chunk> chunksToUpdateSunLight;
 
     public World() {
         this.chunks = new HashMap<>();
@@ -33,18 +34,21 @@ public class World {
         noise.SetFrequency(1 / 128f);
         this.caveNoise = new FastNoiseLite(random.nextInt());
         caveNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-        caveNoise.SetFrequency(1 / 128f);
+        caveNoise.SetFrequency(1 / 64f);
         this.caveNoise2 = new FastNoiseLite(random.nextInt());
         caveNoise2.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
-        caveNoise2.SetFrequency(1 / 128f);
+        caveNoise2.SetFrequency(1 / 64f);
         this.redLightNodes = new ArrayDeque<>();
         this.greenLightNodes = new ArrayDeque<>();
         this.blueLightNodes = new ArrayDeque<>();
+        this.sunLightNodes = new ArrayDeque<>();
         this.redLightRemovalNodes = new ArrayDeque<>();
         this.greenLightRemovalNodes = new ArrayDeque<>();
         this.blueLightRemovalNodes = new ArrayDeque<>();
+        this.sunLightRemovalNodes = new ArrayDeque<>();
         this.blocksToPlace = new ArrayDeque<>();
         this.lightsToPlace = new ArrayDeque<>();
+        this.chunksToUpdateSunLight = new HashSet<>();
     }
 
     public void update(Camera camera) {
@@ -58,13 +62,18 @@ public class World {
             setLightInternal(data.x, data.y, data.z, data.w);
         }
 
+        chunksToUpdateSunLight.forEach(this::propagateSunLight);
+        chunksToUpdateSunLight.clear();
+
         LightManager.removeRed(this, redLightRemovalNodes, redLightNodes);
         LightManager.removeGreen(this, greenLightRemovalNodes, greenLightNodes);
         LightManager.removeBlue(this, blueLightRemovalNodes, blueLightNodes);
+        LightManager.removeSun(this, sunLightRemovalNodes, sunLightNodes);
 
         LightManager.propagateRed(this, redLightNodes);
         LightManager.propagateGreen(this, greenLightNodes);
         LightManager.propagateBlue(this, blueLightNodes);
+        LightManager.propagateSun(this, sunLightNodes);
 
         final var worldSide = 16;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
@@ -80,6 +89,7 @@ public class World {
             }
 
             if (chunk.isDirty()) {
+//                propagateSunLight(chunk);
                 Valkyrie.executorService.submit(() -> {
                     try {
                         var computedMesh = Valkyrie.integerListToArray(new GreedyMesher(chunk, chunk.getWorld()).compute());
@@ -119,65 +129,85 @@ public class World {
 
     public void loadChunk(int chunkX, int chunkZ) {
         var chunk = chunks.computeIfAbsent(new Vector2i(chunkX, chunkZ), position -> new Chunk(position, this));
-        Valkyrie.executorService.submit(() -> {
-            short[] chunkData = new short[32 * 128 * 32];
-            chunk.setData(chunkData);
-            var random = new SplittableRandom();
-            var heightMap = getOctaves(chunkX * 32, chunkZ * 32);
-            for (int x = 0; x < 32; x++) {
-                for (int z = 0; z < 32; z++) {
-                    var height = heightMap[x | z << 5] * 90 + 30;
-                    for (int y = 0; y < height; y++) {
-                        if (y > height - 3) {
-                            chunk.setBlock(x, y, z, 2);
-                        } else {
-                            chunk.setBlock(x, y, z, 1);
-                        }
-
-                        var cave1 = caveNoise.GetNoise((chunkX * 32 + x), y * 2, (chunkZ * 32 + z));
-                        var cave2 = caveNoise2.GetNoise((chunkX * 32 + x), y, (chunkZ * 32 + z));
-                        if (Math.abs(cave1) + Math.abs(cave2) < 0.15)
-                            chunk.setBlock(x, y, z, 0);
+        short[] chunkData = new short[32 * 128 * 32];
+        chunk.setData(chunkData);
+        var random = new SplittableRandom();
+        var heightMap = getOctaves(chunkX * 32, chunkZ * 32);
+        for (int x = 0; x < 32; x++) {
+            for (int z = 0; z < 32; z++) {
+                var height = heightMap[x | z << 5] * 90 + 30;
+                for (int y = 0; y < height; y++) {
+                    if (y > height - 3) {
+                        chunk.setBlock(x, y, z, 2);
+                    } else {
+                        chunk.setBlock(x, y, z, 1);
                     }
 
-                    for (int y = 0; y < height; y++) {
-                        if (y < random.nextInt(5) + 1) {
-                            chunk.setBlock(x, y, z, 5);
-                        }
+                    var cave1 = caveNoise.GetNoise((chunkX * 32 + x), y, (chunkZ * 32 + z));
+                    var cave2 = caveNoise2.GetNoise((chunkX * 32 + x), y * 2, (chunkZ * 32 + z));
+                    if (Math.abs(cave1) + Math.abs(cave2) < 0.15)
+                        chunk.setBlock(x, y, z, 0);
+                }
+
+                for (int y = 0; y < height; y++) {
+                    if (y < random.nextInt(5) + 1) {
+                        chunk.setBlock(x, y, z, 5);
+                    }
+                }
+
+                if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && random.nextInt(30) == 0 && height + 7 < 128 && x < 31 && x > 1 && z < 31 && z > 1) {
+                    for (int i = 0; i < 4; i++) {
+                        chunk.setBlock(x, (int) (height + i + 1), z, 4);
                     }
 
-                    if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && random.nextInt(30) == 0 && height + 7 < 128 && x < 31 && x > 1 && z < 31 && z > 1) {
-                        for (int i = 0; i < 4; i++) {
-                            chunk.setBlock(x, (int) (height + i + 1), z, 4);
-                        }
-
-                        for (int i = -2; i <= 2; i++) {
-                            for (int j = -2; j <= 2; j++) {
-                                for (int k = 0; k < 5; k++) {
-                                    if (random.nextInt(1 + k * 2) == 0)
-                                        chunk.setBlock(x + i, (int) (height + 3 + k), z + j, 3);
-                                }
+                    for (int i = -2; i <= 2; i++) {
+                        for (int j = -2; j <= 2; j++) {
+                            for (int k = 0; k < 5; k++) {
+                                if (random.nextInt(1 + k * 2) == 0)
+                                    chunk.setBlock(x + i, (int) (height + 3 + k), z + j, 3);
                             }
                         }
                     }
                 }
             }
-            chunk.setData(chunkData);
-            chunk.setDirty(true);
+        }
+        chunk.setData(chunkData);
+        chunk.setDirty(true);
 
-            for (int i = -1; i <= 1; i++) {
-                for (int k = -1; k <= 1; k++) {
-                    if (i == 0 && k == 0) {
-                        continue;
-                    }
+        for (int i = -1; i <= 1; i++) {
+            for (int k = -1; k <= 1; k++) {
+                if (i == 0 && k == 0) {
+                    continue;
+                }
 
-                    var neighbor = getChunk(i + chunkX, k + chunkZ);
-                    if (neighbor != null) {
-                        neighbor.setDirty(true);
+                var neighbor = getChunk(i + chunkX, k + chunkZ);
+                if (neighbor != null) {
+                    neighbor.setDirty(true);
+                    chunksToUpdateSunLight.add(neighbor);
+                }
+            }
+        }
+
+        chunksToUpdateSunLight.add(chunk);
+    }
+
+    private void propagateSunLight(Chunk chunk) {
+        for (int x = 0; x < 32; x++) {
+            for (int z = 0; z < 32; z++) {
+                var sky = true;
+                for (int y = 127; y >= 0; y--) {
+                    chunk.getBlock(x, y, z);
+                    if (sky && chunk.getBlock(x, y ,z) == 0) {
+                        chunk.setSunLight(x, y , z, 7);
+                        sunLightNodes.add(new LightNode(x | y << 5 | z << 12, chunk));
+                    } else {
+                        sky = false;
+//                        sunLightRemovalNodes.add(new LightRemovalNode(x | y << 5 | z << 12, 0, chunk));
+                        chunk.setSunLight(x, y, z, 0);
                     }
                 }
             }
-        });
+        }
     }
 
     public Vector3f rayCast(Vector3f position, Vector3f direction, float distance, boolean isPlace) {
@@ -281,6 +311,7 @@ public class World {
         chunk.setBlock(blockX, y, blockZ, voxel);
         chunk.setDirty(true);
         updateBlockNeighbors(position, blockX, blockZ);
+        chunksToUpdateSunLight.add(chunk);
     }
 
     public void setBlock(int voxel, int x, int y, int z) {
@@ -300,11 +331,10 @@ public class World {
 
         var blockX = Math.abs(x - position.x * CHUNK_SIDE);
         var blockZ = Math.abs(z - position.y * CHUNK_SIDE);
-        chunk.setRedLight(blockX, y, blockZ, light >> 8);
-        chunk.setGreenLight(blockX, y, blockZ, (light >> 4) & 0xf);
-        chunk.setBlueLight(blockX, y, blockZ, light & 0xf);
+        chunk.setRedLight(blockX, y, blockZ, (light >> 8) & 0x7);
+        chunk.setGreenLight(blockX, y, blockZ, (light >> 4) & 0x7);
+        chunk.setBlueLight(blockX, y, blockZ, (light) & 0x7);
         int index = blockX | y << 5 | blockZ << 12;
-        System.out.println(blockZ);
         redLightNodes.add(new LightNode(index, chunk));
         greenLightNodes.add(new LightNode(index, chunk));
         blueLightNodes.add(new LightNode(index, chunk));
