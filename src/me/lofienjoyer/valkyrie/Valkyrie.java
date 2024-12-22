@@ -3,6 +3,7 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 import org.lwjgl.opengl.GL;
@@ -197,6 +198,8 @@ public class Valkyrie {
                     }
                 }
             }
+
+            simulatePhysics(camera, delta, world);
 
             // lock
             synchronized (lock) {
@@ -425,6 +428,68 @@ public class Valkyrie {
 
         drawLength = indirectCmds.length / 4;
         return indirectCmds.length / 4;
+    }
+
+    private static void simulatePhysics(Camera camera, float delta, World world) {
+        var movementVector = new Vector3f((float) camera.movement.x, (float) camera.movement.y, (float) camera.movement.z).add(new Vector3f(0, -4f, 0).mul(delta));
+
+        checkX(camera.getPosition(), movementVector, world);
+        checkY(camera.getPosition(), movementVector, world);
+        checkZ(camera.getPosition(), movementVector, world);
+
+        camera.setPosition(camera.getPosition().add(movementVector));
+        camera.movement = new Vector3d();
+    }
+
+    private static boolean checkX(Vector3f position, Vector3f movement, World world) {
+        if (Math.floor(position.x) == Math.floor(position.x + movement.x + 0.25f * ValkyrieMath.signum(movement.x)))
+            return false;
+
+        for (int y = 0; y < 2; y++) {
+            for (int z = 0; z < 1; z++) {
+                var block = world.getBlock(position.add(movement.x + 0.25f * ValkyrieMath.signum(movement.x), y - 0.75f, z));
+                if (block != 0) {
+                    movement.x = 0;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean checkY(Vector3f position, Vector3f movement, World world) {
+        if (Math.floor(position.y) == Math.floor(position.y + movement.y + 0.75f * ValkyrieMath.signum(movement.y)))
+            return false;
+
+        for (int x = 0; x < 1; x++) {
+            for (int z = 0; z < 1; z++) {
+                var block = world.getBlock(position.add(x, movement.y + 0.75f * ValkyrieMath.signum(movement.y), z));
+                if (block != 0) {
+                    movement.y = 0;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean checkZ(Vector3f position, Vector3f movement, World world) {
+        if (Math.floor(position.z) == Math.floor(position.z + movement.z + 0.25f * ValkyrieMath.signum(movement.z)))
+            return false;
+
+        for (int y = 0; y < 2; y++) {
+            for (int x = 0; x < 1; x++) {
+                var block = world.getBlock(position.add(x, y - 0.75f, movement.z + 0.25f * ValkyrieMath.signum(movement.z)));
+                if (block != 0) {
+                    movement.z = 0;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public static int[] integerListToArray(List<Integer> list) {

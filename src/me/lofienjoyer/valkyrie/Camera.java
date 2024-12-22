@@ -15,10 +15,11 @@ import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 
 public class Camera {
 
-    private static final float SPEED = 64;
+    private static final float SPEED = 5;
 
     private final Vector3d position;
-    private float rotationY, rotationX, roll;
+    private double rotationY, rotationX, roll;
+    public Vector3d movement;
 
     boolean mouseLocked = false;
     double newX = 320;
@@ -33,8 +34,9 @@ public class Camera {
     private final Vector3f direction;
 
     public Camera() {
-        this.position = new Vector3d(1024 * 32 * 32, 64, 1024 * 32 * 32);
+        this.position = new Vector3d(2 * 32 * 32, 128, 2 * 32 * 32);
         this.direction = new Vector3f();
+        this.movement = new Vector3d();
         rotationY = 90;
         updateDirection();
     }
@@ -85,8 +87,8 @@ public class Camera {
 
             GLFW.glfwSetCursorPos(window, 640, 360);
 
-            rotationX += (float) deltaX * 0.05f;
-            rotationY += (float) deltaY * 0.05f;
+            rotationX += deltaX * 0.05f;
+            rotationY += deltaY * 0.05f;
 
             rotationX = rotationX % 360;
             rotationY = Math.min(Math.max(-90, rotationY), 90);
@@ -95,31 +97,31 @@ public class Camera {
         updateDirection();
 
         if (glfwGetKey(window, GLFW_KEY_W) != 0) {
-            position.z -= Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            position.x += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.z -= Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.x += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
         }
 
         if (glfwGetKey(window, GLFW_KEY_S) != 0) {
-            position.z += Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            position.x -= Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.z += Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.x -= Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
         }
 
         if (glfwGetKey(window, GLFW_KEY_A) != 0) {
-            position.x -= Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            position.z -= Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.x -= Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.z -= Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
         }
 
         if (glfwGetKey(window, GLFW_KEY_D) != 0) {
-            position.x += Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            position.z += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.x += Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.z += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
         }
 
         if (glfwGetKey(window, GLFW_KEY_SPACE) != 0) {
-            position.y += delta * SPEED;
+            movement.y += delta * SPEED;
         }
 
         if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) != 0) {
-            position.y -= delta * SPEED;
+            movement.y -= delta * SPEED;
         }
     }
 
@@ -139,23 +141,23 @@ public class Camera {
         this.position.z = position.z;
     }
 
-    public float getRotationY() {
+    public double getRotationY() {
         return rotationY;
     }
 
-    public float getRotationX() {
+    public double getRotationX() {
         return rotationX;
     }
 
-    public void setRotationX(float rotationX) {
+    public void setRotationX(double rotationX) {
         this.rotationX = rotationX;
     }
 
-    public void setRotationY(float rotationY) {
+    public void setRotationY(double rotationY) {
         this.rotationY = rotationY;
     }
 
-    public float getRoll() {
+    public double getRoll() {
         return roll;
     }
 

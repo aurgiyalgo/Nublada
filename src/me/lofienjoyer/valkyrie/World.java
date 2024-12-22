@@ -308,6 +308,7 @@ public class World {
         redLightRemovalNodes.add(new LightRemovalNode(index, chunk.getRedLight(blockX, y, blockZ), chunk));
         greenLightRemovalNodes.add(new LightRemovalNode(index, chunk.getGreenLight(blockX, y, blockZ), chunk));
         blueLightRemovalNodes.add(new LightRemovalNode(index, chunk.getBlueLight(blockX, y, blockZ), chunk));
+        sunLightRemovalNodes.add(new LightRemovalNode(index, chunk.getBlueLight(blockX, y, blockZ), chunk));
         chunk.setBlock(blockX, y, blockZ, voxel);
         chunk.setDirty(true);
         updateBlockNeighbors(position, blockX, blockZ);
