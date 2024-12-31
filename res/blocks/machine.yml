@@ -1,9 +1,3 @@
 name: 'machine'
-topTexture: 'machine_top'
-texture: 'machine_side'
-bottomTexture: 'machine_bottom'
-northTexture: 'machine_north'
-southTexture: 'machine_south'
-eastTexture: 'machine_east'
-westTexture: 'machine_west'
-transparent: true
+texture: 6
+id: 6

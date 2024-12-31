@@ -1,5 +1,0 @@
-name: 'short_grass'
-texture: 'short_grass'
-transparent: true
-collision: false
-model: x

@@ -147,7 +147,7 @@ public class Valkyrie {
         shadowProgram.bind();
         shadowProgram.setUniform("proj", Camera.createOrthoProjectionMatrix(128));
 
-        executorService = Executors.newFixedThreadPool(3);
+        executorService = Executors.newFixedThreadPool(1);
         var world = new World();
         var worldTimer = new Timer();
         worldTimer.scheduleAtFixedRate(new TimerTask() {
@@ -194,11 +194,10 @@ public class Valkyrie {
                     }
                 }
 
-                if (Input.isButtonPressed(GLFW_MOUSE_BUTTON_2)) {
+                if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_2)) {
                     var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
                     if (position != null) {
                         world.setBlock(6, position);
-                        world.setLight(random.nextInt(0xfff + 1), position);
                     }
                 }
 

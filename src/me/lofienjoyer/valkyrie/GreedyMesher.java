@@ -9,13 +9,13 @@ public class GreedyMesher {
 
     private final int[] dims;
 
-    private final short[] chunkData;
+    private final int[] chunkData;
 
     private List<Integer> positions;
     private final Random random;
 
     public GreedyMesher(Chunk chunk, World world) {
-        this.chunkData = new short[34 * 130 * 34];
+        this.chunkData = new int[34 * 130 * 34];
         for (int x = 0; x < 32; x++) {
             for (int y = 0; y < 128; y++) {
                 for (int z = 0; z < 32; z++) {
@@ -149,7 +149,7 @@ public class GreedyMesher {
                                     x[v] = j;
 
                                     int vertex;
-                                    int texture = (mask[n] & 0xfffff);
+                                    int texture = (mask[n] & 0xffffff);
 
                                     // Texture re-orientation based on the direction
                                     if (d == 2) {

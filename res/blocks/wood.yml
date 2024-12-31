@@ -1,4 +1,3 @@
 name: 'wood_log'
-topTexture: 'log_top'
-bottomTexture: 'log_top'
-texture: 'log_side'
+id: 4
+texture: 4

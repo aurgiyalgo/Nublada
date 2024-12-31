@@ -1,4 +1,3 @@
 name: 'grass_block'
-topTexture: 'grass_top'
-bottomTexture: 'dirt'
-texture: 'grass_side'
+id: 2
+texture: 2

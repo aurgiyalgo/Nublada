@@ -4,17 +4,13 @@ public class BlockType {
 
     public int id;
     public int textureId;
-    public int redLight;
-    public int greenLight;
-    public int blueLight;
+    public int light;
     public boolean transparent;
 
-    public BlockType(int id, int textureId, int redLight, int greenLight, int blueLight) {
+    public BlockType(int id, int textureId, int light) {
         this.id = id;
         this.textureId = textureId;
-        this.redLight = redLight;
-        this.greenLight = greenLight;
-        this.blueLight = blueLight;
+        this.light = light;
     }
 
 }

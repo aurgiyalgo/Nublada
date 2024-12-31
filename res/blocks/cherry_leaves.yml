@@ -1,5 +1,4 @@
 name: 'cherry_leaves'
-texture: 'cherry_leaves'
+id: 7
+texture: 7
 transparent: true
-drawBetween: true
-model: leaves

@@ -63,7 +63,7 @@ void main()
     int height = int((position.y >> 20) & 0x7fu) + 1;
     int light = int(position.y & 0xfffu);
     int texture = (int(position.y >> 12) & 0xff);
-    if (texture == 52) {
+    if (texture == 3 || texture == 7 || texture == 8) {
         positionX += (sin((positionX + worldTime) * 60) + 1) / 64;
         positionY += (sin((positionY + worldTime + 2) * 60) + 1) / 64;
         positionZ += (sin((positionZ + worldTime + 5) * 60) + 1) / 64;

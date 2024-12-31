@@ -1,5 +1,4 @@
 name: 'leaves'
-texture: 'leaves'
+id: 3
+texture: 3
 transparent: true
-drawBetween: true
-model: leaves

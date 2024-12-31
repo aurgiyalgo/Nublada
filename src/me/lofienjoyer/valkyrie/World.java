@@ -77,7 +77,7 @@ public class World {
         LightManager.propagateBlue(this, blueLightNodes);
         LightManager.propagateSun(this, sunLightNodes);
 
-        final var worldSide = 8;
+        final var worldSide = 12;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
         var meshesToDelete = new ArrayList<Long>();
@@ -131,7 +131,7 @@ public class World {
 
     public void loadChunk(int chunkX, int chunkZ) {
         var chunk = chunks.computeIfAbsent(new Vector2i(chunkX, chunkZ), position -> new Chunk(position, this));
-        short[] chunkData = new short[32 * 128 * 32];
+        int[] chunkData = new int[32 * 128 * 32];
         chunk.setData(chunkData);
         var random = new SplittableRandom();
         var heightMap = getOctaves(chunkX * 32, chunkZ * 32);
@@ -157,18 +157,35 @@ public class World {
                     }
                 }
 
-                if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && random.nextInt(30) == 0 && height + 7 < 128 && x < 31 && x > 1 && z < 31 && z > 1) {
-                    for (int i = -2; i <= 2; i++) {
-                        for (int j = -2; j <= 2; j++) {
-                            for (int k = 0; k < 5; k++) {
-                                if (random.nextInt(1 + k * 2) == 0)
-                                    chunk.setBlock(x + i, (int) (height + 3 + k), z + j, 3);
+                if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && random.nextInt(30) == 0 && height + 7 < 128 && x < 30 && x > 2 && z < 30 && z > 2) {
+                    if (random.nextInt(50) == 0) {
+                        for (int i = -3; i <= 3; i++) {
+                            for (int j = -3; j <= 3; j++) {
+                                for (int k = 0; k < 13; k++) {
+                                    if (Math.sqrt(i * i + j * j) <= (3 - k * 0.2))
+                                        chunk.setBlock(x + i, (int) (height + 3 + k), z + j, 7);
+                                }
                             }
                         }
-                    }
 
-                    for (int i = 0; i < 4; i++) {
-                        chunk.setBlock(x, (int) (height + i + 1), z, 4);
+                        for (int i = 0; i < 8; i++) {
+                            chunk.setBlock(x, (int) (height + i + 1), z, 4);
+                        }
+                    } else {
+                        var leafType = random.nextInt(15) != 0 ? 3 : 8;
+
+                        for (int i = -2; i <= 2; i++) {
+                            for (int j = -2; j <= 2; j++) {
+                                for (int k = 0; k < 5; k++) {
+                                    if (random.nextFloat(1 + k * 2) < 1.3)
+                                        chunk.setBlock(x + i, (int) (height + 3 + k), z + j, leafType);
+                                }
+                            }
+                        }
+
+                        for (int i = 0; i < 4; i++) {
+                            chunk.setBlock(x, (int) (height + i + 1), z, 4);
+                        }
                     }
                 }
             }
@@ -323,6 +340,9 @@ public class World {
 
     public void setBlock(int voxel, Vector3f position) {
         setBlock(voxel, (int)position.x, (int)position.y, (int)position.z);
+
+        var blockType = BlockManager.getVoxelById(voxel);
+        setLight(blockType.light, (int)position.x, (int)position.y, (int)position.z);
     }
 
     private void setLightInternal(int light, int x, int y, int z) {

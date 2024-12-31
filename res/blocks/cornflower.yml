@@ -1,6 +1,0 @@
-name: 'cornflower'
-texture: 'cornflower'
-transparent: true
-collision: false
-customModel: true
-model: x
