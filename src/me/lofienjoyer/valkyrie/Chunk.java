@@ -26,61 +26,61 @@ public class Chunk {
     public int getBlock(int x, int y, int z) {
         if (data == null) return 0;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
-        return data[x | y << 5 | z << 12] & 0xf;
+        return data[x | y << 5 | z << 12] >> 12;
     }
 
     public void setBlock(int x, int y, int z, int id) {
         if (data == null) return;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return;
-        data[x | y << 5 | z << 12] = (short) (id & 0xf);
+        data[x | y << 5 | z << 12] = (short) (id << 12);
     }
 
     public int getRedLight(int x, int y, int z) {
         if (data == null) return 0;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
-        return (data[x | y << 5 | z << 12] >> 13) & 0x7;
+        return (data[x | y << 5 | z << 12] >> 9) & 0x7;
     }
 
     public void setRedLight(int x, int y, int z, int light) {
         if (data == null) return;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return;
-        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0x1fff) | (light << 13));
+        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0xf1ff) | (light << 9));
     }
 
     public int getGreenLight(int x, int y, int z) {
         if (data == null) return 0;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
-        return (data[x | y << 5 | z << 12] >> 10) & 0x7;
+        return (data[x | y << 5 | z << 12] >> 6) & 0x7;
     }
 
     public void setGreenLight(int x, int y, int z, int light) {
         if (data == null) return;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return;
-        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0xe3ff) | (light << 10));
+        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0xfe3f) | (light << 6));
     }
 
     public int getBlueLight(int x, int y, int z) {
         if (data == null) return 0;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
-        return (data[x | y << 5 | z << 12] >> 7) & 0x7;
+        return (data[x | y << 5 | z << 12] >> 3) & 0x7;
     }
 
     public void setBlueLight(int x, int y, int z, int light) {
         if (data == null) return;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return;
-        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0xfc7f) | (light << 7));
+        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0xffc7) | (light << 3));
     }
 
     public int getSunLight(int x, int y, int z) {
         if (data == null) return 0;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return 0;
-        return (data[x | y << 5 | z << 12] >> 4) & 0x7;
+        return data[x | y << 5 | z << 12] & 0x7;
     }
 
     public void setSunLight(int x, int y, int z, int light) {
         if (data == null) return;
         if (y < 0 || y > 127 || x < 0 || x > 31 || z < 0 || z > 31) return;
-        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0xff8f) | (light << 4));
+        data[x | y << 5 | z << 12] = (short) ((data[x | y << 5 | z << 12] & 0xfff8) | light);
     }
 
     public short[] getData() {

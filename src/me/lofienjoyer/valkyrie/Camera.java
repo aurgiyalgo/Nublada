@@ -183,7 +183,7 @@ public class Camera {
 
     public static Matrix4f createProjectionMatrix(int width, int height) {
         var projectionMatrix = new Matrix4f();
-        projectionMatrix.perspective((float) Math.toRadians(80), width / (float)height, 0.25f, 4096f);
+        projectionMatrix.perspective((float) Math.toRadians(80), width / (float)height, 0.1f, 4096f);
         return projectionMatrix;
     }
 

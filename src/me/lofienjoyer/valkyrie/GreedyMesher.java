@@ -108,10 +108,13 @@ public class GreedyMesher {
 
                         for(x[u] = 0; x[u] < dims[u]; x[u]++) {
 
-                            voxelFace  = getBlock(x[0], x[1], x[2]);
-                            voxelFace1 = getBlock((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2]));
+                            var voxelA = getBlock(x[0], x[1], x[2]);
+                            var voxelB = getBlock((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2]));
 
-                            mask[n++] = (((voxelFace == 0 || voxelFace == 3) || (voxelFace1 == 0 || voxelFace1 == 3)))
+                            voxelFace = voxelA.id;
+                            voxelFace1 = voxelB.id;
+
+                            mask[n++] = (((voxelFace == 0 || voxelFace1 == 0) || (voxelA.transparent || voxelB.transparent)))
                                     ? backFace ? voxelFace1 | (getLight(x[0], x[1], x[2]) << 4) : voxelFace | (getLight((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2])) << 4)
                                     : 0;
                         }
@@ -196,12 +199,12 @@ public class GreedyMesher {
         }
     }
 
-    public int getBlock(int x, int y, int z) {
-        return chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (130 * 34)] & 0xf;
+    public BlockType getBlock(int x, int y, int z) {
+        return BlockManager.getVoxelById(chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (130 * 34)] >> 12);
     }
 
     public int getLight(int x, int y, int z) {
-        return chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (130 * 34)] >> 4;
+        return chunkData[(x + 1) + (y + 1) * 34 + (z + 1) * (130 * 34)] & 0xfff;
     }
 
     private static int getData(int x, int y, int z, int face, int width, int height) {

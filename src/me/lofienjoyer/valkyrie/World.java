@@ -28,7 +28,7 @@ public class World {
 
     public World() {
         this.chunks = new HashMap<>();
-        var random = new SplittableRandom(2);
+        var random = new SplittableRandom(System.nanoTime());
         this.noise = new FastNoiseLite(random.nextInt());
         noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
         noise.SetFrequency(1 / 128f);
@@ -49,6 +49,8 @@ public class World {
         this.blocksToPlace = new ArrayDeque<>();
         this.lightsToPlace = new ArrayDeque<>();
         this.chunksToUpdateSunLight = new HashSet<>();
+
+        BlockManager.init();
     }
 
     public void update(Camera camera) {
