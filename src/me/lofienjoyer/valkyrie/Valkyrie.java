@@ -3,6 +3,7 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import org.joml.Vector2f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -120,6 +121,9 @@ public class Valkyrie {
             allocator = new VboAllocator(vaoId, 256 * 1024 * 1024);
         }
 
+        var uiProgram = new ShaderProgram("uiVertex.glsl", "uiFragment.glsl");
+        var versionTexture = new Texture("res/textures/version.png");
+
         var texture = new Texture("res/textures/blocks/tiles.png");
         glBindTexture(GL_TEXTURE_2D, texture.getId());
 
@@ -173,7 +177,7 @@ public class Valkyrie {
         var random = new Random();
         var saturation = new float[] { 0.5f };
         var timeSpeed = new float[] { 0.005f };
-        var dayTime = 0f;
+        var dayTime = 0.2f;
         var debug = false;
 
         while (!glfwWindowShouldClose(windowId)) {
@@ -295,6 +299,8 @@ public class Valkyrie {
             glBindTexture(GL_TEXTURE_2D, fbo.getTextureId());
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
+            drawMenu(uiProgram, versionTexture);
+
             if (debug) {
                 imGuiGlfw.newFrame();
                 ImGui.newFrame();
@@ -363,6 +369,25 @@ public class Valkyrie {
         glfwDestroyWindow(windowId);
 
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
+    }
+
+    private static void drawMenu(ShaderProgram uiProgram, Texture versionTexture) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        uiProgram.bind();
+
+        glBindTexture(GL_TEXTURE_2D, versionTexture.getId());
+        drawButton(0, 0, 256, 64, uiProgram);
+
+        glDisable(GL_BLEND);
+    }
+
+    private static void drawButton(int x, int y, int width, int height, ShaderProgram uiProgram) {
+        var origin = new Vector2f((float) x / Valkyrie.width, (float) y / Valkyrie.height);
+        var size = new Vector2f((float) width / Valkyrie.width, (float) height / Valkyrie.height);
+        uiProgram.setUniform("origin", origin);
+        uiProgram.setUniform("size", size);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     private static void deletePendingMeshes(GpuAllocator allocator) {
