@@ -111,11 +111,11 @@ public class GreedyMesher {
                             var voxelA = getBlock(x[0], x[1], x[2]);
                             var voxelB = getBlock((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2]));
 
-                            voxelFace = voxelA.id;
-                            voxelFace1 = voxelB.id;
+                            voxelFace = voxelA.textureId;
+                            voxelFace1 = voxelB.textureId;
 
                             mask[n++] = (((voxelFace == 0 || voxelFace1 == 0) || (voxelA.transparent || voxelB.transparent)))
-                                    ? backFace ? voxelFace1 | (getLight(x[0], x[1], x[2]) << 4) : voxelFace | (getLight((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2])) << 4)
+                                    ? backFace ? (voxelFace1 << 12) | getLight(x[0], x[1], x[2]) : (voxelFace << 12) | getLight((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2]))
                                     : 0;
                         }
                     }
@@ -128,7 +128,7 @@ public class GreedyMesher {
 
                         for(i = 0; i < dims[u];) {
 
-                            if((mask[n] & 0xf) != 0) {
+                            if(((mask[n] >> 12) & 0xff) != 0) {
 
                                 for(w = 1; i + w < dims[u] && mask[n + w] != 0 && mask[n + w] == mask[n]; w++) {}
 
@@ -149,7 +149,7 @@ public class GreedyMesher {
                                     x[v] = j;
 
                                     int vertex;
-                                    int texture = (mask[n] & 0xffff) - 1;
+                                    int texture = (mask[n] & 0xfffff);
 
                                     // Texture re-orientation based on the direction
                                     if (d == 2) {
@@ -158,21 +158,21 @@ public class GreedyMesher {
                                         } else {
                                             vertex = getData(x[0], x[1], x[2], 1, w, h);
                                         }
-                                        texture |= (h - 1) << 16;
+                                        texture |= (h - 1) << 20;
                                     } else if (d == 0) {
                                         if (backFace) {
                                             vertex = getData(x[0], x[1], x[2], 2, h, w);
                                         } else {
                                             vertex = getData(x[0] - 1, x[1], x[2], 3, h, w);
                                         }
-                                        texture |= (w - 1) << 16;
+                                        texture |= (w - 1) << 20;
                                     } else {
                                         if (!backFace) {
                                             vertex = getData(x[0], x[1] - 1, x[2], 4, h, w);
                                         } else {
                                             vertex = getData(x[0], x[1], x[2], 5, h, w);
                                         }
-                                        texture |= (w - 1) << 16;
+                                        texture |= (w - 1) << 20;
                                     }
 
                                     positions.add(vertex);

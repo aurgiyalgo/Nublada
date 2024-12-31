@@ -16,8 +16,8 @@ uniform vec3 lightDir;
 uniform float timeOfDay;
 uniform float light;
 
-const int atlasSize = 128;
-const int textureSize = 32;
+const int atlasSize = 256;
+const int textureSize = 16;
 const int texturesPerSide = atlasSize / textureSize;
 
 in VS_OUT {

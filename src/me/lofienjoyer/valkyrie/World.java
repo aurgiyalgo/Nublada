@@ -77,7 +77,7 @@ public class World {
         LightManager.propagateBlue(this, blueLightNodes);
         LightManager.propagateSun(this, sunLightNodes);
 
-        final var worldSide = 16;
+        final var worldSide = 8;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
         var meshesToDelete = new ArrayList<Long>();
@@ -158,10 +158,6 @@ public class World {
                 }
 
                 if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && random.nextInt(30) == 0 && height + 7 < 128 && x < 31 && x > 1 && z < 31 && z > 1) {
-                    for (int i = 0; i < 4; i++) {
-                        chunk.setBlock(x, (int) (height + i + 1), z, 4);
-                    }
-
                     for (int i = -2; i <= 2; i++) {
                         for (int j = -2; j <= 2; j++) {
                             for (int k = 0; k < 5; k++) {
@@ -169,6 +165,10 @@ public class World {
                                     chunk.setBlock(x + i, (int) (height + 3 + k), z + j, 3);
                             }
                         }
+                    }
+
+                    for (int i = 0; i < 4; i++) {
+                        chunk.setBlock(x, (int) (height + i + 1), z, 4);
                     }
                 }
             }

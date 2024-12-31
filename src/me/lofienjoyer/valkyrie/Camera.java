@@ -53,46 +53,35 @@ public class Camera {
     }
 
     public void update(long window, float delta) {
-        if (GLFW.glfwGetKey(window, GLFW_KEY_ESCAPE) == 1) {
-            mouseLocked = false;
-            GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
+//        GLFW.glfwSetCursorPos(window, Valkyrie.width / 2, Valkyrie.height / 2);
+        GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_HIDDEN);
 
-        if (GLFW.glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS && !mouseLocked) {
-            GLFW.glfwSetCursorPos(window, 640, 360);
-            GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_HIDDEN);
+        DoubleBuffer x = BufferUtils.createDoubleBuffer(1);
+        DoubleBuffer y = BufferUtils.createDoubleBuffer(1);
 
-            mouseLocked = true;
-        }
+        GLFW.glfwGetCursorPos(window, x, y);
+        x.rewind();
+        y.rewind();
 
-        if (mouseLocked){
-            DoubleBuffer x = BufferUtils.createDoubleBuffer(1);
-            DoubleBuffer y = BufferUtils.createDoubleBuffer(1);
+        newX = x.get();
+        newY = y.get();
 
-            GLFW.glfwGetCursorPos(window, x, y);
-            x.rewind();
-            y.rewind();
+        double deltaX = newX - Valkyrie.width / 2;
+        double deltaY = newY - Valkyrie.height / 2;
 
-            newX = x.get();
-            newY = y.get();
+        rotX = newX != prevX;
+        rotY = newY != prevY;
 
-            double deltaX = newX - 640;
-            double deltaY = newY - 360;
+        prevX = newX;
+        prevY = newY;
 
-            rotX = newX != prevX;
-            rotY = newY != prevY;
+        GLFW.glfwSetCursorPos(window, Valkyrie.width / 2, Valkyrie.height / 2);
 
-            prevX = newX;
-            prevY = newY;
+        rotationX += deltaX * 0.05f;
+        rotationY += deltaY * 0.05f;
 
-            GLFW.glfwSetCursorPos(window, 640, 360);
-
-            rotationX += deltaX * 0.05f;
-            rotationY += deltaY * 0.05f;
-
-            rotationX = rotationX % 360;
-            rotationY = Math.min(Math.max(-90, rotationY), 90);
-        }
+        rotationX = rotationX % 360;
+        rotationY = Math.min(Math.max(-90, rotationY), 90);
 
         updateDirection();
 

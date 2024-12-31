@@ -7,6 +7,7 @@ import org.joml.Vector2f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ public class Valkyrie {
 
     public static ExecutorService executorService;
 
-    private static int width = 1280, height = 720;
+    public static int width = 1280, height = 720;
 
     public static final Object lock = new Object();
 
@@ -124,7 +125,7 @@ public class Valkyrie {
         var uiProgram = new ShaderProgram("uiVertex.glsl", "uiFragment.glsl");
         var versionTexture = new Texture("res/textures/version.png");
 
-        var texture = new Texture("res/textures/blocks/tiles.png");
+        var texture = new Texture("res/textures/blocks/terrain.png");
         glBindTexture(GL_TEXTURE_2D, texture.getId());
 
         int indirectBuffer = glGenBuffers();
@@ -181,12 +182,11 @@ public class Valkyrie {
         var debug = false;
 
         while (!glfwWindowShouldClose(windowId)) {
-            if (Input.isKeyJustPressed(GLFW_KEY_F3))
+            if (Input.isKeyJustPressed(GLFW_KEY_ESCAPE))
                 debug = !debug;
 
             if (!debug) {
                 camera.update(windowId, delta);
-
                 if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_1)) {
                     var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, false);
                     if (position != null) {
@@ -207,6 +207,8 @@ public class Valkyrie {
                         camera.movement.y += 0.2f;
                     }
                 }
+            } else {
+                GLFW.glfwSetInputMode(windowId, GLFW.GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
 
             simulatePhysics(camera, delta, world);
@@ -230,8 +232,7 @@ public class Valkyrie {
 
             dayTime += delta * timeSpeed[0];
             var worldTime = dayTime % 1;
-            var timeOfDay = 1 - (Math.abs(worldTime * 2 - 1) + 1) / 2f;
-            var light = 1 - (Math.min(Math.abs(worldTime * 3 - 1.5f), 1) + 1) / 2f;
+            var light = 1 - (Math.min(Math.abs(worldTime * 3 - 1.5f), 1) + 1) / 2.05f;
             var lightPow = (float) Math.sqrt(light);
             glClearColor(0.125f * lightPow, 0.5f * lightPow, 0.75f * lightPow, 1);
             var sunAngle = Math.PI * 2 * worldTime - Math.PI / 2;
@@ -272,7 +273,6 @@ public class Valkyrie {
             program.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
             program.setUniform("dayTime", worldTime);
             program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
-            program.setUniform("timeOfDay", timeOfDay);
             program.setUniform("light", (float) Math.pow(light, 0.3));
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.getId());

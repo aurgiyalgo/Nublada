@@ -60,10 +60,10 @@ void main()
     float positionZ = int((position.x >> 14) & 0x3fu);
     int face = int((position.x >> 20) & 0x7u);
     int width = int((position.x >> 23) & 0x7fu) + 1;
-    int height = int((position.y >> 16) & 0x7fu) + 1;
-    int texture = int(position.y & 0xfu);
-    int light = int(position.y >> 4) & 0xfff;
-    if (texture == 2) {
+    int height = int((position.y >> 20) & 0x7fu) + 1;
+    int light = int(position.y & 0xfffu);
+    int texture = (int(position.y >> 12) & 0xff);
+    if (texture == 52) {
         positionX += (sin((positionX + worldTime) * 60) + 1) / 64;
         positionY += (sin((positionY + worldTime + 2) * 60) + 1) / 64;
         positionZ += (sin((positionZ + worldTime + 5) * 60) + 1) / 64;
