@@ -116,13 +116,13 @@ public class Camera {
             movement.z += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
         }
 
-        if (glfwGetKey(window, GLFW_KEY_SPACE) != 0) {
-            movement.y += delta * SPEED;
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) != 0) {
-            movement.y -= delta * SPEED;
-        }
+//        if (glfwGetKey(window, GLFW_KEY_SPACE) != 0) {
+//            movement.y += delta * SPEED;
+//        }
+//
+//        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) != 0) {
+//            movement.y -= delta * SPEED;
+//        }
     }
 
     public void move(float x, float y, float z) {

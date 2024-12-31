@@ -197,6 +197,12 @@ public class Valkyrie {
                         world.setLight(random.nextInt(0xfff + 1), position);
                     }
                 }
+
+                if (Input.isKeyJustPressed(GLFW_KEY_SPACE)) {
+                    if (camera.movement.y == 0d) {
+                        camera.movement.y += 0.2f;
+                    }
+                }
             }
 
             simulatePhysics(camera, delta, world);
@@ -431,14 +437,22 @@ public class Valkyrie {
     }
 
     private static void simulatePhysics(Camera camera, float delta, World world) {
-        var movementVector = new Vector3f((float) camera.movement.x, (float) camera.movement.y, (float) camera.movement.z).add(new Vector3f(0, -4f, 0).mul(delta));
+        var chunk = world.getChunk((int) Math.floor(camera.getPosition().x / 32f), (int) Math.floor(camera.getPosition().z / 32f));
+        if (chunk == null)
+            return;
+
+        camera.movement.add(new Vector3f(0, -0.625f, 0).mul(delta));
+        var movementVector = new Vector3f((float) camera.movement.x, (float) camera.movement.y, (float) camera.movement.z);
+//        camera.movement.add(new Vector3f(0, -9.8f, 0));
 
         checkX(camera.getPosition(), movementVector, world);
         checkY(camera.getPosition(), movementVector, world);
         checkZ(camera.getPosition(), movementVector, world);
 
         camera.setPosition(camera.getPosition().add(movementVector));
+
         camera.movement = new Vector3d();
+        camera.movement.y = movementVector.y;
     }
 
     private static boolean checkX(Vector3f position, Vector3f movement, World world) {
