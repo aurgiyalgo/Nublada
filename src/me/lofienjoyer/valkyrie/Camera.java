@@ -162,6 +162,17 @@ public class Camera {
         return matrix;
     }
 
+    public static Matrix4f createCompleteViewMatrix(Camera camera) {
+        var matrix = new Matrix4f();
+        matrix.identity();
+        matrix.rotate((float) Math.toRadians(camera.getRotationY()), new Vector3f(1, 0, 0));
+        matrix.rotate((float) Math.toRadians(camera.getRotationX()), new Vector3f(0, 1, 0));
+        var cameraPos = camera.position;
+        Vector3f negativeCameraPos = new Vector3f((float) -cameraPos.x, (float) -cameraPos.y, (float) -cameraPos.z);
+        matrix.translate(negativeCameraPos);
+        return matrix;
+    }
+
     public static Matrix4f createViewMatrixNoPosition(Camera camera) {
         var matrix = new Matrix4f();
         matrix.identity();

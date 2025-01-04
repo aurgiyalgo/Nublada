@@ -38,6 +38,7 @@ public class WorldScene implements Scene {
     private Camera camera, shadowCamera;
     private World world;
     private Timer worldTimer;
+    private FrustumIntersection intersection;
 
     boolean wireframe = false;
     float[] saturation = new float[] { 0.5f };
@@ -142,6 +143,8 @@ public class WorldScene implements Scene {
         shadowProgram.bind();
         shadowProgram.setUniform("proj", Camera.createOrthoProjectionMatrix(128));
 
+        intersection = new FrustumIntersection();
+
         world = new World();
         worldTimer = new Timer();
         worldTimer.scheduleAtFixedRate(new TimerTask() {
@@ -153,8 +156,6 @@ public class WorldScene implements Scene {
 
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
-
-
     }
 
     public void draw(float delta) {
@@ -187,6 +188,8 @@ public class WorldScene implements Scene {
         }
 
         simulatePhysics(camera, delta, world);
+
+        intersection.set(Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height).mul(Camera.createCompleteViewMatrix(camera)));
 
         // lock
         synchronized (Valkyrie.lock) {
@@ -320,7 +323,7 @@ public class WorldScene implements Scene {
                 ImGui.progressBar((float) allocator.getFirstFreePosition() / allocator.getSizeInBytes());
                 ImGui.text(allocator.getFirstFreePosition() + " / " + allocator.getSizeInBytes());
                 synchronized (Valkyrie.lock) {
-                    ImGui.text("Chunks rendered: " + chunksToRender.size());
+                    ImGui.text("Chunks rendered: " + drawLength);
                     ImGui.text("Meshes to delete: " + meshesToDelete.size());
                     ImGui.text("Meshes to update: " + meshesToUpdate.size());
                 }
@@ -399,19 +402,24 @@ public class WorldScene implements Scene {
         }
     }
 
-    private static int updateIndirectBuffer(GpuAllocator allocator, Vector3i camPos, int indirectBuffer, int chunkPositionBuffer, int shadowIndirectBuffer) {
+    private int updateIndirectBuffer(GpuAllocator allocator, Vector3i camPos, int indirectBuffer, int chunkPositionBuffer, int shadowIndirectBuffer) {
         var indirectCmdsList = new ArrayList<Integer>();
         var chunkPositions = new ArrayList<Long>();
         var shadowIndirectCmdsList = new ArrayList<Integer>();
         allocator.getMeshes().forEach(mesh -> {
+            var meshX = (mesh.getId() & 0xffff);
+            var meshZ = (mesh.getId() >> 32) & 0xffff;
+
+            if (!intersection.testAab(meshX * 32, 0, meshZ * 32, meshX * 32 + 32, 128, meshZ * 32 + 32)) {
+                return;
+            }
+
             indirectCmdsList.add(3);
             indirectCmdsList.add(mesh.getLength());
             indirectCmdsList.add(0);
             indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
 
             chunkPositions.add(mesh.getId());
-            var meshX = (mesh.getId() & 0xffff);
-            var meshZ = (mesh.getId() >> 32) & 0xffff;
 
             shadowIndirectCmdsList.add(3);
             if (meshX > camPos.x + 5 || meshX < camPos.x - 5 || meshZ > camPos.z + 5 || meshZ < camPos.z - 5) {
