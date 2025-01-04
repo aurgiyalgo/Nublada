@@ -22,7 +22,7 @@ public class Valkyrie {
     private static Scene scene;
 
     public static void main(String[] args) {
-        final var vsync = 0;
+        final var vsync = 1;
         System.out.println("Vsync: " + (vsync != 0));
 
         if (!glfwInit()) {

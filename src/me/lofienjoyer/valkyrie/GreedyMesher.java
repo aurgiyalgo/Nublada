@@ -100,7 +100,7 @@ public class GreedyMesher {
 
                 mask = new int [(dims[u] + 1) * (dims[v] + 1)];
 
-                for(x[d] = -1; x[d] < dims[d];) {
+                for(x[d] = 0; x[d] < dims[d];) {
 
                     n = 0;
 
@@ -156,19 +156,19 @@ public class GreedyMesher {
                                         if (!backFace) {
                                             vertex = getData(x[0], x[1], x[2] - 1, 0, w, h);
                                         } else {
-                                            vertex = getData(x[0], x[1], x[2], 1, w, h);
+                                            vertex = getData(x[0], x[1], x[2] - 1, 1, w, h);
                                         }
                                         texture |= (h - 1) << 20;
                                     } else if (d == 0) {
                                         if (backFace) {
-                                            vertex = getData(x[0], x[1], x[2], 2, h, w);
+                                            vertex = getData(x[0] - 1, x[1], x[2], 2, h, w);
                                         } else {
                                             vertex = getData(x[0] - 1, x[1], x[2], 3, h, w);
                                         }
                                         texture |= (w - 1) << 20;
                                     } else {
                                         if (!backFace) {
-                                            vertex = getData(x[0], x[1] - 1, x[2], 4, h, w);
+                                            vertex = getData(x[0], x[1], x[2], 4, h, w);
                                         } else {
                                             vertex = getData(x[0], x[1], x[2], 5, h, w);
                                         }
@@ -208,7 +208,9 @@ public class GreedyMesher {
     }
 
     private static int getData(int x, int y, int z, int face, int width, int height) {
-        return face << 20 | z + 1 << 14 | x + 1 << 8 | y + 1 | (width - 1) << 23;
+        if (z < 0 || x < 0 || y < 0)
+            System.out.println(face);
+        return face << 20 | z << 14 | x << 8 | y | (width - 1) << 23;
     }
 
 }

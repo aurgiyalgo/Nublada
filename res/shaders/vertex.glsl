@@ -55,23 +55,40 @@ void main()
     int x = int(data >> 5);
     int y = int(data & 0x1fu) - 1;
     vec3 chunkPosition = getChunkPosition(gl_DrawID) - camChunkPos;
+    int face = int((position.x >> 20) & 0x7u);
     float positionX = int((position.x >> 8) & 0x3fu);
     float positionY = int(position.x & 0xffu);
     float positionZ = int((position.x >> 14) & 0x3fu);
-    int face = int((position.x >> 20) & 0x7u);
     int width = int((position.x >> 23) & 0x7fu) + 1;
     int height = int((position.y >> 20) & 0x7fu) + 1;
     int light = int(position.y & 0xfffu);
     int texture = (int(position.y >> 12) & 0xff);
+
+    if (face == 0) {
+        positionY++;
+    } else if (face == 1) {
+        positionY++;
+        positionZ++;
+    } else if (face == 2) {
+        positionY++;
+        positionX++;
+    } else if (face == 3) {
+        positionY++;
+    } else if (face == 4) {
+
+    } else if (face == 5) {
+        positionY++;
+    }
+
     if (texture == 3 || texture == 7 || texture == 8) {
         positionX += (sin((positionX + worldTime) * 60) + 1) / 64;
         positionY += (sin((positionY + worldTime + 2) * 60) + 1) / 64;
         positionZ += (sin((positionZ + worldTime + 5) * 60) + 1) / 64;
     }
 
-    float offsetX = positionX + chunkPosition.x * 32 - 1;
+    float offsetX = positionX + chunkPosition.x * 32;
     float offsetY = positionY + chunkPosition.y * 32 - 1;
-    float offsetZ = positionZ + chunkPosition.z * 32 - 1;
+    float offsetZ = positionZ + chunkPosition.z * 32;
 
     if (face == 0) {
         gl_Position = vec4(x * width + offsetX, y * height + offsetY, offsetZ + 1, 1.0);
