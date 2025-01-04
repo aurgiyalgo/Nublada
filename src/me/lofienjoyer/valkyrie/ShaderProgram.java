@@ -21,18 +21,18 @@ public class ShaderProgram {
 
     private final FloatBuffer buffer;
 
-    public ShaderProgram(String vertexSrc, String fragmentSrc) throws IOException {
+    public ShaderProgram(String vertexSrc, String fragmentSrc) {
         this.buffer = BufferUtils.createFloatBuffer(16);
         shaderProgram = glCreateProgram();
         vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, Files.readString(Path.of("res", "shaders", vertexSrc)));
+        glShaderSource(vertexShader, getShaderSource(vertexSrc));
         glCompileShader(vertexShader);
         glAttachShader(shaderProgram, vertexShader);
         if (glGetShaderi(vertexShader, GL_COMPILE_STATUS) == GL_FALSE) {
             System.err.println(glGetShaderInfoLog(vertexShader, 512));
         }
         fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, Files.readString(Path.of("res", "shaders", fragmentSrc)));
+        glShaderSource(fragmentShader, getShaderSource(fragmentSrc));
         glCompileShader(fragmentShader);
         glAttachShader(shaderProgram, fragmentShader);
         if (glGetShaderi(fragmentShader, GL_COMPILE_STATUS) == GL_FALSE) {
@@ -40,6 +40,14 @@ public class ShaderProgram {
         }
         glLinkProgram(shaderProgram);
         glValidateProgram(shaderProgram);
+    }
+
+    private String getShaderSource(String file) {
+        try {
+            return Files.readString(Path.of("res", "shaders", file));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void bind() {

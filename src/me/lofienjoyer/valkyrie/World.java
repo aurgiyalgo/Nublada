@@ -94,9 +94,9 @@ public class World {
 //                propagateSunLight(chunk);
                 Valkyrie.executorService.submit(() -> {
                     try {
-                        var computedMesh = Valkyrie.integerListToArray(new GreedyMesher(chunk, chunk.getWorld()).compute());
+                        var computedMesh = WorldScene.integerListToArray(new GreedyMesher(chunk, chunk.getWorld()).compute());
                         synchronized (Valkyrie.lock) {
-                            Valkyrie.meshesToUpdate.add(new MeshToUpdate(computedMesh, encodedPosition));
+                            WorldScene.meshesToUpdate.add(new MeshToUpdate(computedMesh, encodedPosition));
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -124,8 +124,8 @@ public class World {
         }
 
         synchronized (Valkyrie.lock) {
-            Valkyrie.meshesToDelete.addAll(meshesToDelete);
-            Valkyrie.chunksToRender = chunksToRender;
+            WorldScene.meshesToDelete.addAll(meshesToDelete);
+            WorldScene.chunksToRender = chunksToRender;
         }
     }
 

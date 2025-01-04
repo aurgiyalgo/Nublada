@@ -1,7 +1,5 @@
 package me.lofienjoyer.valkyrie;
 
-import imgui.ImGui;
-import imgui.flag.ImGuiMouseCursor;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
@@ -11,7 +9,6 @@ import org.lwjgl.glfw.GLFW;
 import java.nio.DoubleBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.glfw.GLFW.GLFW_PRESS;
 
 public class Camera {
 
@@ -77,8 +74,8 @@ public class Camera {
 
         GLFW.glfwSetCursorPos(window, Valkyrie.width / 2, Valkyrie.height / 2);
 
-        rotationX += deltaX * 0.05f;
-        rotationY += deltaY * 0.05f;
+        rotationX += deltaX * delta * 2;
+        rotationY += deltaY * delta * 2;
 
         rotationX = rotationX % 360;
         rotationY = Math.min(Math.max(-90, rotationY), 90);
