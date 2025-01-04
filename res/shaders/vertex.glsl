@@ -7,6 +7,7 @@ out vec2 textureCoords;
 out vec4 outData;
 out vec4 passLight;
 out vec3 outCamPos;
+out vec2 texOffset;
 
 uniform mat4 proj;
 uniform mat4 view;
@@ -80,10 +81,10 @@ void main()
         positionY++;
     }
 
+    texOffset = vec2(0);
     if (texture == 3 || texture == 7 || texture == 8) {
-        positionX += (sin((positionX + worldTime) * 60) + 1) / 64;
-        positionY += (sin((positionY + worldTime + 2) * 60) + 1) / 64;
-        positionZ += (sin((positionZ + worldTime + 5) * 60) + 1) / 64;
+        texOffset.x += (sin((positionX + worldTime) * 4) + 1) / 16;
+        texOffset.y += (sin((positionY + worldTime + 2) * 20) + 1) / 32;
     }
 
     float offsetX = positionX + chunkPosition.x * 32;

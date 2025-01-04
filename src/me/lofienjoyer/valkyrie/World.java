@@ -157,8 +157,8 @@ public class World {
                     }
                 }
 
-                if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && random.nextInt(30) == 0 && height + 7 < 128 && x < 30 && x > 2 && z < 30 && z > 2) {
-                    if (random.nextInt(50) == 0) {
+                if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && noise.GetNoise((chunkX * 32 + x) * 512, (chunkZ * 32 + z) * 512) > 0.95 && height + 7 < 128 && x < 30 && x > 2 && z < 30 && z > 2) {
+                    if (random.nextInt(100) == 0) {
                         for (int i = -3; i <= 3; i++) {
                             for (int j = -3; j <= 3; j++) {
                                 for (int k = 0; k < 13; k++) {

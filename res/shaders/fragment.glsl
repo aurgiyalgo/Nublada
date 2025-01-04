@@ -5,6 +5,7 @@ in vec2 textureCoords;
 in vec4 outData;
 in vec4 passLight;
 in float passFace;
+in vec2 texOffset;
 
 const float border = 0.03125;
 const vec2 texelSize = vec2(1 / 1024.0, 1 / 1024.0);
@@ -65,8 +66,8 @@ void main()
         discard;
     }
 
-    float xUv = mod(outData.z, texturesPerSide) / texturesPerSide + mod(outData.x, 1.0) / texturesPerSide;
-    float yUv = int(outData.z / texturesPerSide) / float(texturesPerSide) + mod(outData.y, 1.0) / texturesPerSide;
+    float xUv = mod(outData.z, texturesPerSide) / texturesPerSide + mod(outData.x + texOffset.x, 1.0) / texturesPerSide;
+    float yUv = int(outData.z / texturesPerSide) / float(texturesPerSide) + mod(outData.y + texOffset.y, 1.0) / texturesPerSide;
     vec4 color = texture(textureSampler, vec2(xUv, yUv));
     if (color.a < 1.0) {
         discard;
