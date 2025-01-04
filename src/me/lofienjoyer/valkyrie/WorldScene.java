@@ -34,7 +34,7 @@ public class WorldScene implements Scene {
     private Framebuffer fbo;
     private DepthFramebuffer shadowFbo;
     private Texture texture, versionTexture, sunTexture;
-    private int indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer;
+    private int indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer, fontIndirectBuffer, fontPositionBuffer;
     private Camera camera, shadowCamera;
     private World world;
     private Timer worldTimer;
@@ -133,6 +133,13 @@ public class WorldScene implements Scene {
 
         shadowIndirectBuffer = glGenBuffers();
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
+
+        fontIndirectBuffer = glGenBuffers();
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, fontIndirectBuffer);
+
+        fontPositionBuffer = glGenBuffers();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, fontPositionBuffer);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, fontPositionBuffer);
 
         camera = new Camera();
         program.bind();
@@ -367,23 +374,42 @@ public class WorldScene implements Scene {
         fbo.resize(width, height);
     }
 
-    private static void drawMenu(ShaderProgram uiProgram, Texture versionTexture) {
+    private void drawMenu(ShaderProgram uiProgram, Texture versionTexture) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uiProgram.bind();
+        uiProgram.setUniform("width", Valkyrie.width);
+        uiProgram.setUniform("height", Valkyrie.height);
+
+//        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, fontPositionBuffer);
+//        glBufferData(GL_DRAW_INDIRECT_BUFFER, new int[] { 3, 1, 0, 0 }, GL_DYNAMIC_DRAW);
+
+        var data = new ArrayList<Integer>();
+        drawButton(0, 0, 256, 64, data);
+
+        var array = new int[data.size()];
+        for (int i = 0; i < array.length; i++) {
+            array[i] = data.get(i);
+        }
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, fontIndirectBuffer);
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, new int[] { 6, data.size() / 4, 0, 0 }, GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, fontPositionBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, array, GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, fontPositionBuffer);
 
         glBindTexture(GL_TEXTURE_2D, versionTexture.getId());
-        drawButton(0, 0, 256, 64, uiProgram);
+        glMultiDrawArraysIndirect(GL_TRIANGLES, 0, 1, 0);
 
         glDisable(GL_BLEND);
     }
 
-    private static void drawButton(int x, int y, int width, int height, ShaderProgram uiProgram) {
-        var origin = new Vector2f((float) x / Valkyrie.width, (float) y / Valkyrie.height);
-        var size = new Vector2f((float) width / Valkyrie.width, (float) height / Valkyrie.height);
-        uiProgram.setUniform("origin", origin);
-        uiProgram.setUniform("size", size);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+    private static void drawButton(int x, int y, int width, int height, List<Integer> data) {
+        data.add(x);
+        data.add(y);
+        data.add(width);
+        data.add(height);
     }
 
     private static void deletePendingMeshes(GpuAllocator allocator) {
