@@ -88,7 +88,7 @@ void main()
     }
 
     float offsetX = positionX + chunkPosition.x * 32;
-    float offsetY = positionY + chunkPosition.y * 32 - 1;
+    float offsetY = positionY - 1;
     float offsetZ = positionZ + chunkPosition.z * 32;
 
     if (face == 0) {

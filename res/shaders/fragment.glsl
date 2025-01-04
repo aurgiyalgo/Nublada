@@ -16,6 +16,8 @@ uniform float dayTime;
 uniform vec3 lightDir;
 uniform float timeOfDay;
 uniform float light;
+uniform vec3 camPos;
+uniform vec3 skyColor;
 
 const int atlasSize = 256;
 const int textureSize = 16;
@@ -78,4 +80,9 @@ void main()
     float s = max(0.125, passLight.a * light * dotProduct);
 
     FragColor = vec4((vec3(color.r * max(passLight.r, s), color.g * max(passLight.g, s), color.b * max(passLight.b, s)) * outData.a), 1.0);
+
+    vec3 distance = vec3(fs_in.FragPos.x - mod(camPos.x, 32), fs_in.FragPos.y - camPos.y, fs_in.FragPos.z - mod(camPos.z, 32));
+    if (length(distance) > 64) {
+        FragColor.xyz = mix(FragColor.xyz, skyColor, min((length(distance) - 64) / 128.0, 1));
+    }
 }

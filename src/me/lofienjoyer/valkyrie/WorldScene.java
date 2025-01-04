@@ -3,12 +3,10 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import org.joml.Vector2f;
-import org.joml.Vector3d;
-import org.joml.Vector3f;
-import org.joml.Vector3i;
+import org.joml.*;
 import org.lwjgl.glfw.GLFW;
 
+import java.lang.Math;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -32,10 +30,10 @@ public class WorldScene implements Scene {
     private ImGuiImplGl3 imGuiGl3;
     private int quadVao, quadVbo, vaoId, vboId;
     private GpuAllocator allocator;
-    private ShaderProgram program, shadowProgram, fboProgram, uiProgram;
+    private ShaderProgram program, shadowProgram, fboProgram, uiProgram, sunProgram;
     private Framebuffer fbo;
     private DepthFramebuffer shadowFbo;
-    private Texture texture, versionTexture;
+    private Texture texture, versionTexture, sunTexture;
     private int indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer;
     private Camera camera, shadowCamera;
     private World world;
@@ -43,8 +41,8 @@ public class WorldScene implements Scene {
 
     boolean wireframe = false;
     float[] saturation = new float[] { 0.5f };
-    float[] timeSpeed = new float[] { 0.005f };
-    float dayTime = 0.2f;
+    float[] timeSpeed = new float[] { 0.002f };
+    float dayTime = 0.3f;
     boolean debug = false;
 
     public void init() {
@@ -113,6 +111,11 @@ public class WorldScene implements Scene {
             shadowProgram = new ShaderProgram("shadowVertex.glsl", "shadowFragment.glsl");
             allocator = new VboAllocator(vaoId, 64 * 1024 * 1024);
         }
+
+        sunProgram = new ShaderProgram("sunVertex.glsl", "sunFragment.glsl");
+        sunProgram.bind();
+        sunProgram.setUniform("proj", Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height));
+        sunTexture = new Texture("res/textures/sun.png");
 
         uiProgram = new ShaderProgram("uiVertex.glsl", "uiFragment.glsl");
         versionTexture = new Texture("res/textures/version.png");
@@ -204,9 +207,11 @@ public class WorldScene implements Scene {
 
         dayTime += delta * timeSpeed[0];
         var worldTime = dayTime % 1;
-        var light = 1 - (Math.min(Math.abs(worldTime * 3 - 1.5f), 1) + 1) / 2.05f;
+        var adjustedTime = Math.min(0.8f, Math.max(0.2f, worldTime));
+        var light = 1 - Math.min(Math.pow(Math.abs(((adjustedTime - 0.2f) / (0.8f - 0.2f)) * 2 - 1), 3), 1);
         var lightPow = (float) Math.sqrt(light);
-        glClearColor(0.125f * lightPow, 0.5f * lightPow, 0.75f * lightPow, 1);
+        var skyColor = new Vector3f(0.125f * lightPow, 0.5f * lightPow, 0.375f * lightPow);
+        glClearColor(skyColor.x, skyColor.y, skyColor.z, 1);
         var sunAngle = Math.PI * 2 * worldTime - Math.PI / 2;
 
         // Shadow pass
@@ -236,6 +241,24 @@ public class WorldScene implements Scene {
         glViewport(0, 0, Valkyrie.width, Valkyrie.height);
         glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        var transformMatrix = new Matrix4f();
+        transformMatrix.identity();
+        transformMatrix.rotate((float) (-worldTime * Math.PI * 2 - Math.PI / 2f),  new Vector3f(1, 0, 0));
+        transformMatrix.rotate((float) Math.toRadians(10),  new Vector3f(0, 1, 0));
+        transformMatrix.rotate((float) Math.toRadians(3),  new Vector3f(0, 1, 0));
+        transformMatrix.translate(0, 0, -100);
+        transformMatrix.scale(2.5f);
+        glBindTexture(GL_TEXTURE_2D, sunTexture.getId());
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        sunProgram.bind();
+        sunProgram.setUniform("view", Camera.createViewMatrixNoPosition(camera));
+        sunProgram.setUniform("trans", transformMatrix);
+        sunProgram.setUniform("camPos", camera.getPosition());
+        glBindVertexArray(quadVao);
+        glDisable(GL_DEPTH_TEST);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVbo);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
         program.bind();
         program.setUniform("view", Camera.createViewMatrix(camera));
         program.setUniform("shadowView", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
@@ -245,7 +268,9 @@ public class WorldScene implements Scene {
         program.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
         program.setUniform("dayTime", worldTime);
         program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
-        program.setUniform("light", (float) Math.pow(light, 0.3));
+        program.setUniform("light", lightPow);
+        program.setUniform("skyColor", skyColor);
+        glDisable(GL_BLEND);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.getId());
         glActiveTexture(GL_TEXTURE1);

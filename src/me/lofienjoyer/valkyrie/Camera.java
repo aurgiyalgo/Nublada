@@ -157,8 +157,16 @@ public class Camera {
         matrix.rotate((float) Math.toRadians(camera.getRotationY()), new Vector3f(1, 0, 0));
         matrix.rotate((float) Math.toRadians(camera.getRotationX()), new Vector3f(0, 1, 0));
         var cameraPos = camera.position;
-        Vector3f negativeCameraPos = new Vector3f((float) (-cameraPos.x % 32), (float) (-cameraPos.y % 32), (float) (-cameraPos.z % 32));
+        Vector3f negativeCameraPos = new Vector3f((float) (-cameraPos.x % 32), (float) -cameraPos.y, (float) (-cameraPos.z % 32));
         matrix.translate(negativeCameraPos);
+        return matrix;
+    }
+
+    public static Matrix4f createViewMatrixNoPosition(Camera camera) {
+        var matrix = new Matrix4f();
+        matrix.identity();
+        matrix.rotate((float) Math.toRadians(camera.getRotationY()), new Vector3f(1, 0, 0));
+        matrix.rotate((float) Math.toRadians(camera.getRotationX()), new Vector3f(0, 1, 0));
         return matrix;
     }
 

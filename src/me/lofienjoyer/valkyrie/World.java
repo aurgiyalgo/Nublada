@@ -77,7 +77,7 @@ public class World {
         LightManager.propagateBlue(this, blueLightNodes);
         LightManager.propagateSun(this, sunLightNodes);
 
-        final var worldSide = 5;
+        final var worldSide = 12;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
         var meshesToDelete = new ArrayList<Long>();
