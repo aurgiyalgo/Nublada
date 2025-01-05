@@ -35,8 +35,11 @@ public class BlockManager {
                 var transparent = (boolean) data.getOrDefault("transparent", false);
                 var texture = (int) data.getOrDefault("texture", 0);
                 var id = (int) data.getOrDefault("id", 0);
+                var redLight = (int) data.getOrDefault("redLight", 0);
+                var greenLight = (int) data.getOrDefault("greenLight", 0);
+                var blueLight = (int) data.getOrDefault("blueLight", 0);
 
-                var blockType = new BlockType(id, texture, random.nextInt(0x777 + 1) + 0x777);
+                var blockType = new BlockType(id, texture, (redLight & 0x7) << 8 | (greenLight & 0x7) << 4 | (blueLight & 0x7));
                 blockType.transparent = transparent;
                 BLOCK_TYPES.set(id, blockType);
             } catch (FileNotFoundException e) {

@@ -1,3 +1,5 @@
 name: 'machine'
 texture: 6
 id: 6
+redLight: 4
+blueLight: 7

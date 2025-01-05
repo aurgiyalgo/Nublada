@@ -30,7 +30,7 @@ public class WorldScene implements Scene {
     private ImGuiImplGl3 imGuiGl3;
     private int quadVao, quadVbo, vaoId, vboId;
     private GpuAllocator allocator;
-    private ShaderProgram program, shadowProgram, fboProgram, uiProgram, sunProgram;
+    private ShaderProgram program, shadowProgram, fboProgram, uiProgram, sunProgram, fontProgram;
     private Framebuffer fbo;
     private DepthFramebuffer shadowFbo;
     private Texture texture, versionTexture, sunTexture;
@@ -42,9 +42,11 @@ public class WorldScene implements Scene {
 
     boolean wireframe = false;
     float[] saturation = new float[] { 0.5f };
-    float[] timeSpeed = new float[] { 0.002f };
+    float[] timeSpeed = new float[] { 0.001f };
     float dayTime = 0.3f;
     boolean debug = false;
+
+    private int selectedBlock = 1;
 
     public void init() {
         final var shouldUseSsboRendering = false;
@@ -119,6 +121,7 @@ public class WorldScene implements Scene {
         sunTexture = new Texture("res/textures/sun.png");
 
         uiProgram = new ShaderProgram("uiVertex.glsl", "uiFragment.glsl");
+        fontProgram = new ShaderProgram("fontVertex.glsl", "fontFragment.glsl");
         versionTexture = new Texture("res/textures/version.png");
 
         texture = new Texture("res/textures/blocks/terrain.png");
@@ -172,22 +175,32 @@ public class WorldScene implements Scene {
         if (!debug) {
             camera.update(Valkyrie.windowId, delta);
             if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_1)) {
-                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, false);
+                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 8, false);
                 if (position != null) {
                     world.setBlock(0, position);
                 }
             }
 
             if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_2)) {
-                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 256, true);
+                var position = world.rayCast(camera.getPosition(), camera.getDirection(), 8, true);
                 if (position != null) {
-                    world.setBlock(6, position);
+                    world.setBlock(selectedBlock, position);
                 }
+            }
+
+            if (Input.isKeyJustPressed(GLFW_KEY_Q)) {
+                selectedBlock--;
+                if (selectedBlock < 0)
+                    selectedBlock = 255;
+            } else if (Input.isKeyJustPressed(GLFW_KEY_E)) {
+                selectedBlock++;
+                if (selectedBlock > 255)
+                    selectedBlock = 0;
             }
 
             if (Input.isKeyJustPressed(GLFW_KEY_SPACE)) {
                 if (camera.movement.y == 0d) {
-                    camera.movement.y += 15f * delta;
+                    camera.movement.y += 0.2f;
                 }
             }
         } else {
@@ -402,6 +415,37 @@ public class WorldScene implements Scene {
         glBindTexture(GL_TEXTURE_2D, versionTexture.getId());
         glMultiDrawArraysIndirect(GL_TRIANGLES, 0, 1, 0);
 
+        fontProgram.bind();
+        fontProgram.setUniform("width", Valkyrie.width);
+        fontProgram.setUniform("height", Valkyrie.height);
+
+        var data2 = new ArrayList<Integer>();
+        drawButton(Valkyrie.width / 2 - 32 / 2, Valkyrie.height / 2 - 32 / 2, 32, 32, 254, data2);
+        drawButton(Valkyrie.width / 2 - 96 / 2, Valkyrie.height - 96 - 20, 96, 96, 255, data2);
+
+        for (int i = 0; i < 7; i++) {
+            var id = selectedBlock - i + 3;
+            if (id < 0 || id > 255) {
+                continue;
+            }
+            drawButton(Valkyrie.width / 2 - 64 / 2 - (i - 3) * 70, Valkyrie.height - 64 - 20 - 16, 64, 64, BlockManager.getVoxelById(id).textureId, data2);
+        }
+
+        var array2 = new int[data2.size()];
+        for (int i = 0; i < array2.length; i++) {
+            array2[i] = data2.get(i);
+        }
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, fontIndirectBuffer);
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, new int[] { 6, data2.size() / 5, 0, 0 }, GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, fontPositionBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, array2, GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, fontPositionBuffer);
+
+        glBindTexture(GL_TEXTURE_2D, texture.getId());
+        glMultiDrawArraysIndirect(GL_TRIANGLES, 0, 1, 0);
+
         glDisable(GL_BLEND);
     }
 
@@ -410,6 +454,14 @@ public class WorldScene implements Scene {
         data.add(y);
         data.add(width);
         data.add(height);
+    }
+
+    private static void drawButton(int x, int y, int width, int height, int texture, List<Integer> data) {
+        data.add(x);
+        data.add(y);
+        data.add(width);
+        data.add(height);
+        data.add(texture);
     }
 
     private static void deletePendingMeshes(GpuAllocator allocator) {
