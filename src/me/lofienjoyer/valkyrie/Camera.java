@@ -82,6 +82,9 @@ public class Camera {
 
         updateDirection();
 
+        movement.x = 0;
+        movement.z = 0;
+
         if (glfwGetKey(window, GLFW_KEY_W) != 0) {
             movement.z -= Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
             movement.x += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;

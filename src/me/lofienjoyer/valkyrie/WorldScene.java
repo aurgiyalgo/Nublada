@@ -187,7 +187,7 @@ public class WorldScene implements Scene {
 
             if (Input.isKeyJustPressed(GLFW_KEY_SPACE)) {
                 if (camera.movement.y == 0d) {
-                    camera.movement.y += 0.2f;
+                    camera.movement.y += 15f * delta;
                 }
             }
         } else {
@@ -488,23 +488,65 @@ public class WorldScene implements Scene {
         return indirectCmds.length / 4;
     }
 
-    private static void simulatePhysics(Camera camera, float delta, World world) {
+    private void simulatePhysics(Camera camera, float delta, World world) {
         var chunk = world.getChunk((int) Math.floor(camera.getPosition().x / 32f), (int) Math.floor(camera.getPosition().z / 32f));
         if (chunk == null)
             return;
 
-        camera.movement.add(new Vector3f(0, -0.625f, 0).mul(delta));
-        var movementVector = new Vector3f((float) camera.movement.x, (float) camera.movement.y, (float) camera.movement.z);
-//        camera.movement.add(new Vector3f(0, -9.8f, 0));
+        var dimensions = new Vector3f(0.3f, 1.5f, 0.3f);
+        camera.movement.y += -1 * delta * 0.875f;
 
-        checkX(camera.getPosition(), movementVector, world);
-        checkY(camera.getPosition(), movementVector, world);
-        checkZ(camera.getPosition(), movementVector, world);
+        var position = camera.getPosition().sub(0, 1.5f, 0);
 
-        camera.setPosition(camera.getPosition().add(movementVector));
+        position.x += (float) camera.movement.x;
+        checkCollisions(new Vector3f((float) camera.movement.x, 0, 0), position, dimensions, camera.movement);
 
-        camera.movement = new Vector3d();
-        camera.movement.y = movementVector.y;
+        position.y += (float) camera.movement.y;
+        checkCollisions(new Vector3f(0, (float) camera.movement.y, 0), position, dimensions, camera.movement);
+
+        position.z += (float) camera.movement.z;
+        checkCollisions(new Vector3f(0, 0, (float) camera.movement.z), position, dimensions, camera.movement);
+
+        camera.setPosition(position.add(0, 1.5f, 0));
+
+//        camera.movement = new Vector3d();
+//        camera.movement.y = movement.y;
+    }
+
+    private void checkCollisions(Vector3f vel, Vector3f position, Vector3f dimensions, Vector3d movement) {
+        for (float x = position.x - dimensions.x; x <= position.x + dimensions.x; x += dimensions.x) {
+            for (float y = position.y; y <= position.y + dimensions.y; y += dimensions.y / 2f) {
+                for (float z = position.z - dimensions.z; z <= position.z + dimensions.z; z += dimensions.z) {
+                    var voxel = world.getBlock((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
+
+                    if (voxel != 0) {
+                        if (vel.y > 0) {
+                            position.y = (int)y - dimensions.y - 1 / 128f;
+                            movement.y = 0;
+                        }
+                        else if (vel.y < 0) {
+//                            contact = true;
+                            position.y = (int)y + 1;
+                            movement.y = 0;
+                        }
+
+                        if (vel.x > 0) {
+                            position.x = (int)Math.floor(x) - dimensions.x - 1 / 128f;
+                        }
+                        else if (vel.x < 0) {
+                            position.x = (int)Math.floor(x) + dimensions.x + 1 + 1 / 128f;
+                        }
+
+                        if (vel.z > 0) {
+                            position.z = (int)Math.floor(z) - dimensions.z - 1 / 128f;
+                        }
+                        else if (vel.z < 0) {
+                            position.z = (int)Math.floor(z) + dimensions.z + 1 + 1 / 128f;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private static boolean checkX(Vector3f position, Vector3f movement, World world) {
