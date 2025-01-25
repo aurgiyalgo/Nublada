@@ -218,14 +218,17 @@ public class World {
         }
         for (int x = 0; x < 32; x++) {
             for (int z = 0; z < 32; z++) {
+                int lightLevel = 7;
                 for (int y = 127; y >= 0; y--) {
-                    chunk.getBlock(x, y, z);
-                    if (chunk.getBlock(x, y ,z) == 0) {
-                        chunk.setSunLight(x, y , z, 7);
-                        sunLightNodes.add(new LightNode(x | y << 5 | z << 12, chunk));
-                    } else {
-                        break;
+                    var currentBlock = chunk.getBlock(x, y, z);
+                    if (currentBlock != 0) {
+                        lightLevel -= (7 - BlockManager.getVoxelById(currentBlock).transparency);
+                        if (lightLevel <= 0)
+                            break;
                     }
+
+                    chunk.setSunLight(x, y , z, lightLevel);
+                    sunLightNodes.add(new LightNode(x | y << 5 | z << 12, chunk));
                 }
             }
         }

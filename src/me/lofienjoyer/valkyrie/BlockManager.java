@@ -15,6 +15,7 @@ public class BlockManager {
         for (int i = 0; i < 256; i++) {
             BLOCK_TYPES.add(new BlockType(i, 0, 0));
         }
+        BLOCK_TYPES.get(0).transparency = 3;
 
         var blocksFolder = new File("res/blocks");
         if (!blocksFolder.exists()) {
@@ -38,9 +39,11 @@ public class BlockManager {
                 var redLight = (int) data.getOrDefault("redLight", 0);
                 var greenLight = (int) data.getOrDefault("greenLight", 0);
                 var blueLight = (int) data.getOrDefault("blueLight", 0);
+                var transparency = (int) data.getOrDefault("transparency", 0);
 
                 var blockType = new BlockType(id, texture, (redLight & 0x7) << 8 | (greenLight & 0x7) << 4 | (blueLight & 0x7));
                 blockType.transparent = transparent;
+                blockType.transparency = transparency;
                 BLOCK_TYPES.set(id, blockType);
             } catch (FileNotFoundException e) {
                 throw new RuntimeException(e);

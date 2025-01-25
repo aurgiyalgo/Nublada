@@ -2,3 +2,4 @@ name: 'golden_leaves'
 id: 8
 texture: 8
 transparent: true
+transparency: 3

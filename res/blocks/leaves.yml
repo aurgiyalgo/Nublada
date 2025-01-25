@@ -2,3 +2,4 @@ name: 'leaves'
 id: 3
 texture: 3
 transparent: true
+transparency: 2

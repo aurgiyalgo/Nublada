@@ -558,14 +558,20 @@ public class LightManager {
 
             if (lightX - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
-                if (neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getRedLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setRedLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX - 1 + 32, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getRedLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setRedLight(lightX - 1 + 32, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = 31 | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX - 1, lightY, lightZ) == 0 && lightChunk.getRedLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setRedLight(lightX - 1, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX - 1, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getRedLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setRedLight(lightX - 1, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = (lightX - 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -573,14 +579,20 @@ public class LightManager {
 
             if (lightX + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
-                if (neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getRedLight(0, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setRedLight(0, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(0, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getRedLight(0, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setRedLight(0, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = 0 | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX + 1, lightY, lightZ) == 0 && lightChunk.getRedLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setRedLight(lightX + 1, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX + 1, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getRedLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setRedLight(lightX + 1, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = (lightX + 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -589,8 +601,11 @@ public class LightManager {
             if (lightY - 1 < 0) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getRedLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setRedLight(lightX, lightY - 1, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY - 1, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getRedLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setRedLight(lightX, lightY - 1, lightZ, Math.max(toLevel, 0));
                     int newIndex = lightX | (lightY - 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -599,8 +614,11 @@ public class LightManager {
             if (lightY + 1 > 127) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getRedLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setRedLight(lightX, lightY + 1, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY + 1, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getRedLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setRedLight(lightX, lightY + 1, lightZ, Math.max(toLevel, 0));
                     int newIndex = lightX | (lightY + 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -608,14 +626,20 @@ public class LightManager {
 
             if (lightZ - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
-                if (neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getRedLight(lightX, lightY, 31) + 2 <= lightLevel) {
-                    neighbor.setRedLight(lightX, lightY, 31, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX, lightY, 31);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getRedLight(lightX, lightY, 31) + 2 <= lightLevel) {
+                    neighbor.setRedLight(lightX, lightY, 31, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | 31 << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ - 1) == 0 && lightChunk.getRedLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
-                    lightChunk.setRedLight(lightX, lightY, lightZ - 1, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ - 1);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getRedLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
+                    lightChunk.setRedLight(lightX, lightY, lightZ - 1, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | (lightZ - 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -623,14 +647,20 @@ public class LightManager {
 
             if (lightZ + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
-                if (neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getRedLight(lightX, lightY, 0) + 2 <= lightLevel) {
-                    neighbor.setRedLight(lightX, lightY, 0, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX, lightY, 0);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getRedLight(lightX, lightY, 0) + 2 <= lightLevel) {
+                    neighbor.setRedLight(lightX, lightY, 0, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | 0 << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ + 1) == 0 && lightChunk.getRedLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
-                    lightChunk.setRedLight(lightX, lightY, lightZ + 1, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ + 1);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getRedLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
+                    lightChunk.setRedLight(lightX, lightY, lightZ + 1, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | (lightZ + 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -654,14 +684,20 @@ public class LightManager {
 
             if (lightX - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
-                if (neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getGreenLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setGreenLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX - 1 + 32, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getGreenLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setGreenLight(lightX - 1 + 32, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = 31 | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX - 1, lightY, lightZ) == 0 && lightChunk.getGreenLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setGreenLight(lightX - 1, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX - 1, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getGreenLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setGreenLight(lightX - 1, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = (lightX - 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -669,14 +705,20 @@ public class LightManager {
 
             if (lightX + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
-                if (neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getGreenLight(0, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setGreenLight(0, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(0, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getGreenLight(0, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setGreenLight(0, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = 0 | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX + 1, lightY, lightZ) == 0 && lightChunk.getGreenLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setGreenLight(lightX + 1, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX + 1, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getGreenLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setGreenLight(lightX + 1, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = (lightX + 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -685,8 +727,11 @@ public class LightManager {
             if (lightY - 1 < 0) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getGreenLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setGreenLight(lightX, lightY - 1, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY - 1, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getGreenLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setGreenLight(lightX, lightY - 1, lightZ, Math.max(toLevel, 0));
                     int newIndex = lightX | (lightY - 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -695,8 +740,11 @@ public class LightManager {
             if (lightY + 1 > 127) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getGreenLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setGreenLight(lightX, lightY + 1, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY + 1, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getGreenLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setGreenLight(lightX, lightY + 1, lightZ, Math.max(toLevel, 0));
                     int newIndex = lightX | (lightY + 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -704,14 +752,20 @@ public class LightManager {
 
             if (lightZ - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
-                if (neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getGreenLight(lightX, lightY, 31) + 2 <= lightLevel) {
-                    neighbor.setGreenLight(lightX, lightY, 31, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX, lightY, 31);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getGreenLight(lightX, lightY, 31) + 2 <= lightLevel) {
+                    neighbor.setGreenLight(lightX, lightY, 31, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | 31 << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ - 1) == 0 && lightChunk.getGreenLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
-                    lightChunk.setGreenLight(lightX, lightY, lightZ - 1, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ - 1);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getGreenLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
+                    lightChunk.setGreenLight(lightX, lightY, lightZ - 1, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | (lightZ - 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -719,14 +773,20 @@ public class LightManager {
 
             if (lightZ + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
-                if (neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getGreenLight(lightX, lightY, 0) + 2 <= lightLevel) {
-                    neighbor.setGreenLight(lightX, lightY, 0, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX, lightY, 0);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getGreenLight(lightX, lightY, 0) + 2 <= lightLevel) {
+                    neighbor.setGreenLight(lightX, lightY, 0, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | 0 << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ + 1) == 0 && lightChunk.getGreenLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
-                    lightChunk.setGreenLight(lightX, lightY, lightZ + 1, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ + 1);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getGreenLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
+                    lightChunk.setGreenLight(lightX, lightY, lightZ + 1, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | (lightZ + 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -750,14 +810,20 @@ public class LightManager {
 
             if (lightX - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
-                if (neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getBlueLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setBlueLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX - 1 + 32, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getBlueLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setBlueLight(lightX - 1 + 32, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = 31 | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX - 1, lightY, lightZ) == 0 && lightChunk.getBlueLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setBlueLight(lightX - 1, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX - 1, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getBlueLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setBlueLight(lightX - 1, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = (lightX - 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -765,14 +831,20 @@ public class LightManager {
 
             if (lightX + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
-                if (neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getBlueLight(0, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setBlueLight(0, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(0, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getBlueLight(0, lightY, lightZ) + 2 <= lightLevel) {
+                    neighbor.setBlueLight(0, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = 0 | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX + 1, lightY, lightZ) == 0 && lightChunk.getBlueLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setBlueLight(lightX + 1, lightY, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX + 1, lightY, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getBlueLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setBlueLight(lightX + 1, lightY, lightZ, Math.max(toLevel, 0));
                     int newIndex = (lightX + 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -781,8 +853,11 @@ public class LightManager {
             if (lightY - 1 < 0) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getBlueLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setBlueLight(lightX, lightY - 1, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY - 1, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getBlueLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setBlueLight(lightX, lightY - 1, lightZ, Math.max(toLevel, 0));
                     int newIndex = lightX | (lightY - 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -791,8 +866,11 @@ public class LightManager {
             if (lightY + 1 > 127) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getBlueLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
-                    lightChunk.setBlueLight(lightX, lightY + 1, lightZ, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY + 1, lightZ);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getBlueLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
+                    lightChunk.setBlueLight(lightX, lightY + 1, lightZ, Math.max(toLevel, 0));
                     int newIndex = lightX | (lightY + 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -800,14 +878,20 @@ public class LightManager {
 
             if (lightZ - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
-                if (neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getBlueLight(lightX, lightY, 31) + 2 <= lightLevel) {
-                    neighbor.setBlueLight(lightX, lightY, 31, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX, lightY, 31);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getBlueLight(lightX, lightY, 31) + 2 <= lightLevel) {
+                    neighbor.setBlueLight(lightX, lightY, 31, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | 31 << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ - 1) == 0 && lightChunk.getBlueLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
-                    lightChunk.setBlueLight(lightX, lightY, lightZ - 1, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ - 1);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getBlueLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
+                    lightChunk.setBlueLight(lightX, lightY, lightZ - 1, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | (lightZ - 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -815,14 +899,20 @@ public class LightManager {
 
             if (lightZ + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
-                if (neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getBlueLight(lightX, lightY, 0) + 2 <= lightLevel) {
-                    neighbor.setBlueLight(lightX, lightY, 0, lightLevel - 1);
+                var neighborBlock = neighbor.getBlock(lightX, lightY, 0);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && neighbor.getBlueLight(lightX, lightY, 0) + 2 <= lightLevel) {
+                    neighbor.setBlueLight(lightX, lightY, 0, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | 0 << 12;
                     lightNodes.add(new LightNode(newIndex, neighbor));
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ + 1) == 0 && lightChunk.getBlueLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
-                    lightChunk.setBlueLight(lightX, lightY, lightZ + 1, lightLevel - 1);
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ + 1);
+                var transparency = BlockManager.getVoxelById(neighborBlock).transparency;
+                var toLevel = lightLevel - 1 + transparency - 3;
+                if ((neighborBlock == 0 || transparency != 0) && lightChunk.getBlueLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
+                    lightChunk.setBlueLight(lightX, lightY, lightZ + 1, Math.max(toLevel, 0));
                     int newIndex = lightX | lightY << 5 | (lightZ + 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
                 }
@@ -846,13 +936,17 @@ public class LightManager {
 
             if (lightX - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x - 1, lightChunk.getPosition().y);
-                if (neighbor != null && neighbor.getBlock(lightX - 1 + 32, lightY, lightZ) == 0 && neighbor.getSunLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setSunLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
-                    int newIndex = 31 | lightY << 5 | lightZ << 12;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
+                if (neighbor != null) {
+                    var neighborBlock = neighbor.getBlock(lightX - 1 + 32, lightY, lightZ);
+                    if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && neighbor.getSunLight(lightX - 1 + 32, lightY, lightZ) + 2 <= lightLevel) {
+                        neighbor.setSunLight(lightX - 1 + 32, lightY, lightZ, lightLevel - 1);
+                        int newIndex = 31 | lightY << 5 | lightZ << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
                 }
             } else {
-                if (lightChunk.getBlock(lightX - 1, lightY, lightZ) == 0 && lightChunk.getSunLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
+                var neighborBlock = lightChunk.getBlock(lightX - 1, lightY, lightZ);
+                if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && lightChunk.getSunLight(lightX - 1, lightY, lightZ) + 2 <= lightLevel) {
                     lightChunk.setSunLight(lightX - 1, lightY, lightZ, lightLevel - 1);
                     int newIndex = (lightX - 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
@@ -861,13 +955,17 @@ public class LightManager {
 
             if (lightX + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x + 1, lightChunk.getPosition().y);
-                if (neighbor != null && neighbor.getBlock(0, lightY, lightZ) == 0 && neighbor.getSunLight(0, lightY, lightZ) + 2 <= lightLevel) {
-                    neighbor.setSunLight(0, lightY, lightZ, lightLevel - 1);
-                    int newIndex = 0 | lightY << 5 | lightZ << 12;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
+                if (neighbor != null) {
+                    var neighborBlock = neighbor.getBlock(0, lightY, lightZ);
+                    if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && neighbor.getSunLight(0, lightY, lightZ) + 2 <= lightLevel) {
+                        neighbor.setSunLight(0, lightY, lightZ, lightLevel - 1);
+                        int newIndex = 0 | lightY << 5 | lightZ << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
                 }
             } else {
-                if (lightChunk.getBlock(lightX + 1, lightY, lightZ) == 0 && lightChunk.getSunLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
+                var neighborBlock = lightChunk.getBlock(lightX + 1, lightY, lightZ);
+                if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && lightChunk.getSunLight(lightX + 1, lightY, lightZ) + 2 <= lightLevel) {
                     lightChunk.setSunLight(lightX + 1, lightY, lightZ, lightLevel - 1);
                     int newIndex = (lightX + 1) | lightY << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
@@ -877,7 +975,8 @@ public class LightManager {
             if (lightY - 1 < 0) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY - 1, lightZ) == 0 && lightChunk.getSunLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
+                var neighborBlock = lightChunk.getBlock(lightX, lightY - 1, lightZ);
+                if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && lightChunk.getSunLight(lightX, lightY - 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setSunLight(lightX, lightY - 1, lightZ, lightLevel - 1);
                     int newIndex = lightX | (lightY - 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
@@ -887,7 +986,8 @@ public class LightManager {
             if (lightY + 1 > 127) {
 
             } else {
-                if (lightChunk.getBlock(lightX, lightY + 1, lightZ) == 0 && lightChunk.getSunLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
+                var neighborBlock = lightChunk.getBlock(lightX, lightY + 1, lightZ);
+                if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && lightChunk.getSunLight(lightX, lightY + 1, lightZ) + 2 <= lightLevel) {
                     lightChunk.setSunLight(lightX, lightY + 1, lightZ, lightLevel - 1);
                     int newIndex = lightX | (lightY + 1) << 5 | lightZ << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
@@ -896,13 +996,17 @@ public class LightManager {
 
             if (lightZ - 1 < 0) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y - 1);
-                if (neighbor != null && neighbor.getBlock(lightX, lightY, 31) == 0 && neighbor.getSunLight(lightX, lightY, 31) + 2 <= lightLevel) {
-                    neighbor.setSunLight(lightX, lightY, 31, lightLevel - 1);
-                    int newIndex = lightX | lightY << 5 | 31 << 12;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
+                if (neighbor != null) {
+                    var neighborBlock = neighbor.getBlock(lightX, lightY, lightZ + 31);
+                    if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && neighbor.getSunLight(lightX, lightY, 31) + 2 <= lightLevel) {
+                        neighbor.setSunLight(lightX, lightY, 31, lightLevel - 1);
+                        int newIndex = lightX | lightY << 5 | 31 << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ - 1) == 0 && lightChunk.getSunLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ - 1);
+                if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && lightChunk.getSunLight(lightX, lightY, lightZ - 1) + 2 <= lightLevel) {
                     lightChunk.setSunLight(lightX, lightY, lightZ - 1, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | (lightZ - 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
@@ -911,13 +1015,17 @@ public class LightManager {
 
             if (lightZ + 1 > 31) {
                 var neighbor = world.getChunk(lightChunk.getPosition().x, lightChunk.getPosition().y + 1);
-                if (neighbor != null && neighbor.getBlock(lightX, lightY, 0) == 0 && neighbor.getSunLight(lightX, lightY, 0) + 2 <= lightLevel) {
-                    neighbor.setSunLight(lightX, lightY, 0, lightLevel - 1);
-                    int newIndex = lightX | lightY << 5 | 0 << 12;
-                    lightNodes.add(new LightNode(newIndex, neighbor));
+                if (neighbor != null) {
+                    var neighborBlock = neighbor.getBlock(lightX, lightY, 0);
+                    if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && neighbor.getSunLight(lightX, lightY, 0) + 2 <= lightLevel) {
+                        neighbor.setSunLight(lightX, lightY, 0, lightLevel - 1);
+                        int newIndex = lightX | lightY << 5 | 0 << 12;
+                        lightNodes.add(new LightNode(newIndex, neighbor));
+                    }
                 }
             } else {
-                if (lightChunk.getBlock(lightX, lightY, lightZ + 1) == 0 && lightChunk.getSunLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
+                var neighborBlock = lightChunk.getBlock(lightX, lightY, lightZ + 1);
+                if ((neighborBlock == 0 || BlockManager.getVoxelById(neighborBlock).transparency != 0) && lightChunk.getSunLight(lightX, lightY, lightZ + 1) + 2 <= lightLevel) {
                     lightChunk.setSunLight(lightX, lightY, lightZ + 1, lightLevel - 1);
                     int newIndex = lightX | lightY << 5 | (lightZ + 1) << 12;
                     lightNodes.add(new LightNode(newIndex, lightChunk));
