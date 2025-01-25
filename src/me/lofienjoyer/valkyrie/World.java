@@ -91,7 +91,6 @@ public class World {
             }
 
             if (chunk.isDirty()) {
-//                propagateSunLight(chunk);
                 Valkyrie.executorService.submit(() -> {
                     try {
                         var computedMesh = WorldScene.integerListToArray(new GreedyMesher(chunk, chunk.getWorld()).compute());
@@ -105,7 +104,6 @@ public class World {
                 });
                 chunk.setDirty(false);
             }
-//            System.out.println((position.x - cameraX) + " | " + (position.y - cameraZ));
         });
 
         var chunksToRender = new ArrayList<Chunk>();
@@ -213,16 +211,20 @@ public class World {
     private void propagateSunLight(Chunk chunk) {
         for (int x = 0; x < 32; x++) {
             for (int z = 0; z < 32; z++) {
-                var sky = true;
+                for (int y = 127; y >= 0; y--) {
+                    chunk.setSunLight(x, y , z, 0);
+                }
+            }
+        }
+        for (int x = 0; x < 32; x++) {
+            for (int z = 0; z < 32; z++) {
                 for (int y = 127; y >= 0; y--) {
                     chunk.getBlock(x, y, z);
-                    if (sky && chunk.getBlock(x, y ,z) == 0) {
+                    if (chunk.getBlock(x, y ,z) == 0) {
                         chunk.setSunLight(x, y , z, 7);
                         sunLightNodes.add(new LightNode(x | y << 5 | z << 12, chunk));
                     } else {
-                        sky = false;
-//                        sunLightRemovalNodes.add(new LightRemovalNode(x | y << 5 | z << 12, 0, chunk));
-                        chunk.setSunLight(x, y, z, 0);
+                        break;
                     }
                 }
             }
