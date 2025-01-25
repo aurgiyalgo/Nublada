@@ -200,7 +200,7 @@ public class WorldScene implements Scene {
 
             if (Input.isKeyJustPressed(GLFW_KEY_SPACE)) {
                 if (camera.movement.y == 0d) {
-                    camera.movement.y += 0.2f;
+                    camera.movement.y += 10f;
                 }
             }
         } else {
@@ -546,14 +546,15 @@ public class WorldScene implements Scene {
             return;
 
         var dimensions = new Vector3f(0.3f, 1.5f, 0.3f);
-        camera.movement.y += -1 * delta * 0.875f;
+        var oldMovementY = camera.movement.y;
+        camera.movement.y += -1 * delta * 30f;
 
         var position = camera.getPosition().sub(0, 1.5f, 0);
 
         position.x += (float) camera.movement.x;
         checkCollisions(new Vector3f((float) camera.movement.x, 0, 0), position, dimensions, camera.movement);
 
-        position.y += (float) camera.movement.y;
+        position.y += (float) (camera.movement.y + oldMovementY) / 2 * delta;
         checkCollisions(new Vector3f(0, (float) camera.movement.y, 0), position, dimensions, camera.movement);
 
         position.z += (float) camera.movement.z;

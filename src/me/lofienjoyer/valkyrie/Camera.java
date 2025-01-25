@@ -1,11 +1,10 @@
 package me.lofienjoyer.valkyrie;
 
-import org.joml.Matrix4f;
-import org.joml.Vector3d;
-import org.joml.Vector3f;
+import org.joml.*;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
 
+import java.lang.Math;
 import java.nio.DoubleBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -18,15 +17,8 @@ public class Camera {
     private double rotationY, rotationX, roll;
     public Vector3d movement;
 
-    boolean mouseLocked = false;
     double newX = 320;
     double newY = 180;
-
-    double prevX = 0;
-    double prevY = 0;
-
-    boolean rotX = false;
-    boolean rotY = false;
 
     private final Vector3f direction;
 
@@ -50,7 +42,6 @@ public class Camera {
     }
 
     public void update(long window, float delta) {
-//        GLFW.glfwSetCursorPos(window, Valkyrie.width / 2, Valkyrie.height / 2);
         GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_HIDDEN);
 
         DoubleBuffer x = BufferUtils.createDoubleBuffer(1);
@@ -65,12 +56,6 @@ public class Camera {
 
         double deltaX = newX - Valkyrie.width / 2;
         double deltaY = newY - Valkyrie.height / 2;
-
-        rotX = newX != prevX;
-        rotY = newY != prevY;
-
-        prevX = newX;
-        prevY = newY;
 
         GLFW.glfwSetCursorPos(window, Valkyrie.width / 2, Valkyrie.height / 2);
 
