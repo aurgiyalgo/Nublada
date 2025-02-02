@@ -18,6 +18,9 @@ uniform float timeOfDay;
 uniform float light;
 uniform vec3 camPos;
 uniform vec3 skyColor;
+uniform float fogMinDistance;
+uniform float fogMaxDistance;
+uniform int triangleSizeMultiplier;
 
 const int atlasSize = 256;
 const int textureSize = 16;
@@ -31,7 +34,7 @@ in VS_OUT {
 } fs_in;
 
 float calculateShadow(vec4 fragPosLightSpace, float dotProduct) {
-    if (dotProduct < 0.0025)
+    if (dotProduct < 0.01)
         return 1.0;
 
     // perform perspective divide
@@ -49,22 +52,20 @@ float calculateShadow(vec4 fragPosLightSpace, float dotProduct) {
 
     float bias = max(0.01 * (1.0 - dotProduct), 0.0025);
     float shadow = 0.0;
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y <= 1; ++y) {
             float pcfDepth = texture(shadowSampler, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
         }
     }
     shadow /= 9.0;
 
-    return shadow * dotProduct;
+    return shadow;
 }
 
 void main()
 {
-    if (textureCoords.x > 1 || textureCoords.y < 1) {
+    if (triangleSizeMultiplier != 1 && (textureCoords.x > 1 || textureCoords.y < 1)) {
         discard;
     }
 
@@ -82,7 +83,7 @@ void main()
     FragColor = vec4((vec3(color.r * max(passLight.r, s), color.g * max(passLight.g, s), color.b * max(passLight.b, s)) * outData.a), 1.0);
 
     vec3 distance = vec3(fs_in.FragPos.x - mod(camPos.x, 32), fs_in.FragPos.y - camPos.y, fs_in.FragPos.z - mod(camPos.z, 32));
-    if (length(distance) > 64) {
-        FragColor.xyz = mix(FragColor.xyz, skyColor, min((length(distance) - 64) / 128.0, 1));
+    if (length(distance) > fogMinDistance) {
+        FragColor.xyz = mix(FragColor.xyz, skyColor, min((length(distance) - fogMinDistance) / (fogMaxDistance - fogMinDistance), 1));
     }
 }

@@ -2,3 +2,4 @@ name: 'cherry_leaves'
 id: 7
 texture: 7
 transparent: true
+transparency: 2

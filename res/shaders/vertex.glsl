@@ -16,6 +16,7 @@ uniform float worldTime;
 uniform mat4 shadowProj;
 uniform mat4 shadowView;
 uniform ivec3 camChunkPos;
+uniform int triangleSizeMultiplier;
 
 layout(packed, binding = 0) buffer positionBuffer
 {
@@ -53,8 +54,8 @@ vec3 getChunkPosition(int index) {
 
 void main()
 {
-    int x = int(data >> 5);
-    int y = int(data & 0x1fu) - 1;
+    int x = int(data >> 5) * triangleSizeMultiplier;
+    int y = int(data & 0x1fu) * triangleSizeMultiplier - triangleSizeMultiplier + 1;
     vec3 chunkPosition = getChunkPosition(gl_DrawID) - camChunkPos;
     int face = int((position.x >> 20) & 0x7u);
     float positionX = int((position.x >> 8) & 0x3fu);
@@ -104,7 +105,7 @@ void main()
     } else if (face == 5) {
         gl_Position = vec4(x * width + offsetX, offsetY, y * height + offsetZ, 1.0);
     }
-    textureCoords = vec2(x, y + 1);
+    textureCoords = vec2(x, y + triangleSizeMultiplier - 1);
     outData = vec4(x * width, y * height, texture, shadow[face]);
     passLight = vec4((light >> 9) & 0x7, (light >> 6) & 0x7, (light >> 3) & 0x7, light & 0x7) / 8;
 

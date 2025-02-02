@@ -26,6 +26,8 @@ public class World {
     private final Queue<Vector4i> lightsToPlace;
     private final Set<Chunk> chunksToUpdateSunLight;
 
+    private int renderRadius = 12;
+
     public World() {
         this.chunks = new HashMap<>();
         var random = new SplittableRandom(System.nanoTime());
@@ -77,7 +79,7 @@ public class World {
         LightManager.propagateBlue(this, blueLightNodes);
         LightManager.propagateSun(this, sunLightNodes);
 
-        final var worldSide = 12;
+        final var worldSide = renderRadius * 2;
         var cameraX = (int)Math.floor(camera.getPosition().x / 32);
         var cameraZ = (int)Math.floor(camera.getPosition().z / 32);
         var meshesToDelete = new ArrayList<Long>();
@@ -438,6 +440,10 @@ public class World {
 
     public Collection<Chunk> getChunks() {
         return chunks.values();
+    }
+
+    public void setRenderRadius(int renderRadius) {
+        this.renderRadius = renderRadius;
     }
 
 }

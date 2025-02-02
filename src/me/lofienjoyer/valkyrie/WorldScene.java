@@ -3,6 +3,8 @@ package me.lofienjoyer.valkyrie;
 import imgui.ImGui;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import imgui.type.ImBoolean;
+import imgui.type.ImInt;
 import org.joml.*;
 import org.lwjgl.glfw.GLFW;
 
@@ -17,7 +19,7 @@ import static org.lwjgl.opengl.GL46.*;
 
 public class WorldScene implements Scene {
 
-    public static final int SHADOW_MAP_RESOLUTION = 1024;
+    public static final int SHADOW_MAP_RESOLUTION = 2048;
 
     public static List<Long> meshesToDelete = new ArrayList<>();
     public static List<Chunk> chunksToRender = new ArrayList<>();
@@ -33,6 +35,7 @@ public class WorldScene implements Scene {
     private ShaderProgram program, shadowProgram, fboProgram, uiProgram, sunProgram, fontProgram;
     private Framebuffer fbo;
     private DepthFramebuffer shadowFbo;
+    private IntermediateFramebuffer intermediateFbo;
     private Texture texture, versionTexture, sunTexture;
     private int indirectBuffer, chunkPositionBuffer, shadowIndirectBuffer, fontIndirectBuffer, fontPositionBuffer;
     private Camera camera, shadowCamera;
@@ -43,6 +46,13 @@ public class WorldScene implements Scene {
     boolean wireframe = false;
     float[] saturation = new float[] { 0.5f };
     float[] timeSpeed = new float[] { 0.001f };
+    int[] renderRadius = new int[] { 3 };
+    float[] fogDistance = new float[] { 64f, 192f };
+    float[] baseSkyColor = new float[] { 0.125f, 0.5f, 0.375f };
+    ImBoolean vsync = new ImBoolean(true);
+    int[] resolutionScale = new int[] { 4 };
+    ImInt msaaSamples = new ImInt(2);
+    ImBoolean experimentalRendering = new ImBoolean(false);
     float dayTime = 0.3f;
     boolean debug = false;
 
@@ -88,13 +98,15 @@ public class WorldScene implements Scene {
 
         fboProgram = new ShaderProgram("fboVertex.glsl", "fboFragment.glsl");
 
-        fbo = new Framebuffer(Valkyrie.width, Valkyrie.height);
+        fbo = new Framebuffer(Valkyrie.width, Valkyrie.height, msaaSamples.get());
         shadowFbo = new DepthFramebuffer();
+        intermediateFbo = new IntermediateFramebuffer(Valkyrie.width, Valkyrie.height);
 
         int[] data = {
+                getData(1, 1),
+                getData(0, 1),
                 getData(0, 0),
-                getData(2, 2),
-                getData(0, 2)
+                getData(1, 0)
         };
 
         vaoId = glGenVertexArrays();
@@ -151,7 +163,7 @@ public class WorldScene implements Scene {
         shadowCamera = new Camera();
         shadowCamera.setPosition(new Vector3f(0, 200, 0));
         shadowProgram.bind();
-        shadowProgram.setUniform("proj", Camera.createOrthoProjectionMatrix(128));
+        shadowProgram.setUniform("proj", Camera.createOrthoProjectionMatrix(64));
 
         intersection = new FrustumIntersection();
 
@@ -169,8 +181,12 @@ public class WorldScene implements Scene {
     }
 
     public void draw(float delta) {
-        if (Input.isKeyJustPressed(GLFW_KEY_ESCAPE))
+        if (Input.isKeyJustPressed(GLFW_KEY_ESCAPE)) {
             debug = !debug;
+            if (!debug) {
+                GLFW.glfwSetCursorPos(Valkyrie.windowId, Valkyrie.width / 2, Valkyrie.height / 2);
+            }
+        }
 
         if (!debug) {
             camera.update(Valkyrie.windowId, delta);
@@ -208,6 +224,7 @@ public class WorldScene implements Scene {
         }
 
         simulatePhysics(camera, delta, world);
+        world.setRenderRadius(renderRadius[0]);
 
         intersection.set(Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height).mul(Camera.createCompleteViewMatrix(camera)));
 
@@ -226,49 +243,48 @@ public class WorldScene implements Scene {
 
         glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
-
         dayTime += delta * timeSpeed[0];
         var worldTime = dayTime % 1;
         var adjustedTime = Math.min(0.8f, Math.max(0.2f, worldTime));
         var light = 1 - Math.min(Math.pow(Math.abs(((adjustedTime - 0.2f) / (0.8f - 0.2f)) * 2 - 1), 3), 1);
-        var lightPow = (float) Math.sqrt(light);
-        var skyColor = new Vector3f(0.125f * lightPow, 0.5f * lightPow, 0.375f * lightPow);
+        var lightPow = (float) Math.min(1, light * 2);
+        var skyColor = new Vector3f(baseSkyColor[0] * lightPow, baseSkyColor[1] * lightPow, baseSkyColor[2] * lightPow);
         glClearColor(skyColor.x, skyColor.y, skyColor.z, 1);
         var sunAngle = Math.PI * 2 * worldTime - Math.PI / 2;
 
         // Shadow pass
-//            glViewport(0, 0, 1024, 1024);
-//            glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
-//            glClear(GL_DEPTH_BUFFER_BIT);
+//        glViewport(0, 0, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+//        glBindFramebuffer(GL_FRAMEBUFFER, shadowFbo.getId());
+//        glClear(GL_DEPTH_BUFFER_BIT);
         var shadowCameraPosition = new Vector3f();
         shadowCameraPosition.x += (float) Math.cos(sunAngle) * 25;
         shadowCameraPosition.y += (float) Math.sin(sunAngle) * 512;
         shadowCameraPosition.z += (float) Math.cos(sunAngle) * 512;
-//            shadowCamera.setPosition(new Vector3f(shadowCameraPosition));
-//            shadowProgram.bind();
-//            shadowProgram.setUniform("view", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
-//            shadowProgram.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
-//            glBindTexture(GL_TEXTURE_2D, texture.getId());
-//            glDisable(GL_CULL_FACE);
-//            glEnable(GL_DEPTH_TEST);
-//            glBindVertexArray(vaoId);
-//            glBindBuffer(GL_ARRAY_BUFFER, vboId);
-//            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
-//            glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
-//            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
-//            glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
-//            glEnable(GL_CULL_FACE);
+//        var shadowView = Camera.createViewMatrixLookingAt(shadowCamera.getPosition().add(new Vector3f(camera.getPosition().x % 32, camera.getPosition().y, camera.getPosition().z % 32)), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y, camera.getPosition().z % 32));
+//        shadowCamera.setPosition(new Vector3f(shadowCameraPosition));
+//        shadowProgram.bind();
+//        shadowProgram.setUniform("view", shadowView);
+//        shadowProgram.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
+//        glBindTexture(GL_TEXTURE_2D, texture.getId());
+//        glDisable(GL_CULL_FACE);
+//        glEnable(GL_DEPTH_TEST);
+//        glBindVertexArray(vaoId);
+//        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+//        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, shadowIndirectBuffer);
+//        glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
+//        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
+//        glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+//        glEnable(GL_CULL_FACE);
 
         // Color pass
-        glViewport(0, 0, Valkyrie.width, Valkyrie.height);
+        glViewport(0, 0, (int) (Valkyrie.width * (resolutionScale[0] * 0.25f)), (int) (Valkyrie.height * (resolutionScale[0] * 0.25f)));
         glBindFramebuffer(GL_FRAMEBUFFER, fbo.getId());
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         var transformMatrix = new Matrix4f();
         transformMatrix.identity();
         transformMatrix.rotate((float) (-worldTime * Math.PI * 2 - Math.PI / 2f),  new Vector3f(1, 0, 0));
         transformMatrix.rotate((float) Math.toRadians(10),  new Vector3f(0, 1, 0));
-        transformMatrix.rotate((float) Math.toRadians(3),  new Vector3f(0, 1, 0));
+        transformMatrix.rotate((float) Math.toRadians(3),  new Vector3f(0, 0, 1));
         transformMatrix.translate(0, 0, -100);
         transformMatrix.scale(2.5f);
         glBindTexture(GL_TEXTURE_2D, sunTexture.getId());
@@ -284,8 +300,8 @@ public class WorldScene implements Scene {
         glDrawArrays(GL_TRIANGLES, 0, 6);
         program.bind();
         program.setUniform("view", Camera.createViewMatrix(camera));
-        program.setUniform("shadowView", Camera.createViewMatrixLookingAt(shadowCamera.getPosition(), new Vector3f(camera.getPosition().x % 32, camera.getPosition().y % 32, camera.getPosition().z % 32)));
-        program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(128));
+//        program.setUniform("shadowView", shadowView);
+//        program.setUniform("shadowProj", Camera.createOrthoProjectionMatrix(64));
         program.setUniform("lightDir", new Vector3f(shadowCameraPosition).normalize());
         program.setUniform("camPos", camera.getPosition());
         program.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
@@ -293,6 +309,9 @@ public class WorldScene implements Scene {
         program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
         program.setUniform("light", lightPow);
         program.setUniform("skyColor", skyColor);
+        program.setUniform("fogMinDistance", fogDistance[0]);
+        program.setUniform("fogMaxDistance", fogDistance[1]);
+        program.setUniform("triangleSizeMultiplier", experimentalRendering.get() ? 2 : 1);
         glDisable(GL_BLEND);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture.getId());
@@ -306,6 +325,11 @@ public class WorldScene implements Scene {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
         glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
 
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo.getId());
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, intermediateFbo.getId());
+        glBlitFramebuffer(0, 0, (int) (Valkyrie.width * (resolutionScale[0] * 0.25f)), (int) (Valkyrie.height * (resolutionScale[0] * 0.25f)), 0, 0, (int) (Valkyrie.width * (resolutionScale[0] * 0.25f)), (int) (Valkyrie.height * (resolutionScale[0] * 0.25f)), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        glViewport(0, 0, Valkyrie.width, Valkyrie.height);
         glActiveTexture(GL_TEXTURE0);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -316,7 +340,7 @@ public class WorldScene implements Scene {
         glBindVertexArray(quadVao);
         glDisable(GL_DEPTH_TEST);
         glBindBuffer(GL_ARRAY_BUFFER, quadVbo);
-        glBindTexture(GL_TEXTURE_2D, fbo.getTextureId());
+        glBindTexture(GL_TEXTURE_2D, intermediateFbo.getTextureId());
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
         drawMenu(uiProgram, versionTexture);
@@ -326,18 +350,20 @@ public class WorldScene implements Scene {
             ImGui.newFrame();
 
             ImGui.begin("Debug");
+            ImGui.text(String.format("X: %.2f", camera.getPosition().x));
+            ImGui.text(String.format("Y: %.2f", camera.getPosition().y));
+            ImGui.text(String.format("Z: %.2f", camera.getPosition().z));
+            ImGui.text(String.format("Chunk: %d,%d", (int)(camera.getPosition().x / 32), (int)(camera.getPosition().z / 32)));
+            ImGui.text("FPS: " + 1 / delta);
+            ImGui.text("Frame time: " + delta);
+            ImGui.text("GPU: " + gpuName);
+            ImGui.text("Resolution: " + Valkyrie.width + "x" + Valkyrie.height);
 
             ImGui.beginTabBar("tabs");
 
             if (ImGui.beginTabItem("Data")) {
-                ImGui.text("GPU: " + gpuName);
-                ImGui.text("FPS: " + 1 / delta);
-                ImGui.text("Frame time: " + delta);
                 ImGui.text("World time: " + worldTime);
                 ImGui.text("Sun angle: " + sunAngle);
-                ImGui.text(String.format("X: %.2f", camera.getPosition().x));
-                ImGui.text(String.format("Y: %.2f", camera.getPosition().y));
-                ImGui.text(String.format("Z: %.2f", camera.getPosition().z));
                 ImGui.text("Chunk meshes");
                 ImGui.sameLine();
                 ImGui.progressBar((float) allocator.getFirstFreePosition() / allocator.getSizeInBytes());
@@ -351,15 +377,30 @@ public class WorldScene implements Scene {
             }
 
             if (ImGui.beginTabItem("Params")) {
-                ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
+                ImGui.textColored(0xff00ff44, "World");
                 ImGui.sliderFloat("Time speed", timeSpeed, 0f, 1f);
+                ImGui.sliderInt("Render distance", renderRadius, 1, 32, renderRadius[0] * 32 + "m");
+                ImGui.sliderFloat2("Fog distance", fogDistance, 0f, 512f);
+                ImGui.colorEdit3("Sky color", baseSkyColor);
+                ImGui.textColored(0xff3377ff, "Graphics");
+                ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
+                ImGui.sliderInt("Resolution", resolutionScale, 1, 6, (resolutionScale[0] * 0.25f) + "x");
+                ImGui.text("MSAA samples:");
+                ImGui.radioButton("Disabled", msaaSamples, 0);
+                ImGui.radioButton("1x", msaaSamples, 1);
+                ImGui.radioButton("2x", msaaSamples, 2);
+                ImGui.radioButton("4x", msaaSamples, 4);
+                ImGui.radioButton("8x", msaaSamples, 8);
+                ImGui.radioButton("16x", msaaSamples, 16);
+                ImGui.checkbox("VSync", vsync);
+                ImGui.checkbox("Experimental polygon rendering", experimentalRendering);
                 ImGui.endTabItem();
             }
 
             if (ImGui.beginTabItem("Textures")) {
                 ImGui.image(texture.getId(), 256, 256);
                 ImGui.sameLine();
-                ImGui.image(fbo.getTextureId(), 256, 256);
+                ImGui.image(intermediateFbo.getTextureId(), 256, 256);
                 ImGui.image(shadowFbo.getDepthTextureId(), 256, 256);
                 ImGui.endTabItem();
             }
@@ -370,7 +411,11 @@ public class WorldScene implements Scene {
 
             ImGui.render();
             imGuiGl3.renderDrawData(ImGui.getDrawData());
+
+            resize(Valkyrie.width, Valkyrie.height);
         }
+
+        glfwSwapInterval(vsync.get() ? 1 : 0);
     }
 
     public void dispose() {
@@ -382,9 +427,12 @@ public class WorldScene implements Scene {
     }
 
     public void resize(int width, int height) {
+        width *= (resolutionScale[0] * 0.25f);
+        height *= (resolutionScale[0] * 0.25f);
         program.bind();
         program.setUniform("proj", Camera.createProjectionMatrix(width, height));
-        fbo.resize(width, height);
+        fbo.resize(width, height, msaaSamples.get());
+        intermediateFbo.resize(width, height);
     }
 
     private void drawMenu(ShaderProgram uiProgram, Texture versionTexture) {
@@ -465,9 +513,6 @@ public class WorldScene implements Scene {
     }
 
     private static void deletePendingMeshes(GpuAllocator allocator) {
-        if (meshesToDelete.isEmpty())
-            return;
-
         for (int i = 0; i < Math.min(meshesToDelete.size(), 32); i++) {
             allocator.delete(meshesToDelete.removeFirst());
         }
@@ -484,23 +529,27 @@ public class WorldScene implements Scene {
         var indirectCmdsList = new ArrayList<Integer>();
         var chunkPositions = new ArrayList<Long>();
         var shadowIndirectCmdsList = new ArrayList<Integer>();
+        var triangleCount = experimentalRendering.get() ? 3 : 4;
         allocator.getMeshes().forEach(mesh -> {
             var meshX = (mesh.getId() & 0xffff);
             var meshZ = (mesh.getId() >> 32) & 0xffff;
 
-            if (!intersection.testAab(meshX * 32, 0, meshZ * 32, meshX * 32 + 32, 128, meshZ * 32 + 32)) {
-                return;
+            if (intersection.testAab(meshX * 32, 0, meshZ * 32, meshX * 32 + 32, 128, meshZ * 32 + 32)) {
+                indirectCmdsList.add(triangleCount);
+                indirectCmdsList.add(mesh.getLength());
+                indirectCmdsList.add(0);
+                indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
+            } else {
+                indirectCmdsList.add(triangleCount);
+                indirectCmdsList.add(0);
+                indirectCmdsList.add(0);
+                indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
             }
-
-            indirectCmdsList.add(3);
-            indirectCmdsList.add(mesh.getLength());
-            indirectCmdsList.add(0);
-            indirectCmdsList.add(mesh.getIndex() / (Integer.BYTES * 2));
 
             chunkPositions.add(mesh.getId());
 
-            shadowIndirectCmdsList.add(3);
-            if (meshX > camPos.x + 5 || meshX < camPos.x - 5 || meshZ > camPos.z + 5 || meshZ < camPos.z - 5) {
+            shadowIndirectCmdsList.add(triangleCount);
+            if (meshX > camPos.x + 1 || meshX < camPos.x - 1 || meshZ > camPos.z + 1 || meshZ < camPos.z - 1) {
                 shadowIndirectCmdsList.add(0);
             } else {
                 shadowIndirectCmdsList.add(mesh.getLength());

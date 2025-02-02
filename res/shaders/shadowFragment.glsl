@@ -3,15 +3,14 @@ out vec4 FragColor;
 
 in vec2 textureCoords;
 in vec4 outData;
-in float passLight;
 
 const float border = 0.03125;
 
 uniform sampler2D textureSampler;
 uniform float dayTime;
 
-const int atlasSize = 128;
-const int textureSize = 32;
+const int atlasSize = 256;
+const int textureSize = 16;
 const int texturesPerSide = atlasSize / textureSize;
 
 void main()
