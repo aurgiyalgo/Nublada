@@ -12,6 +12,7 @@ import static org.lwjgl.glfw.GLFW.*;
 public class Camera {
 
     private static final float SPEED = 5;
+    private static final float SENSITIVITY_MULTIPLIER = 0.002f;
 
     private final Vector3d position;
     private double rotationY, rotationX, roll;
@@ -41,7 +42,7 @@ public class Camera {
         direction.normalize().mul(-1);
     }
 
-    public void update(long window, float delta) {
+    public void update(long window, float delta, float sensitivity) {
         GLFW.glfwSetInputMode(window, GLFW.GLFW_CURSOR, GLFW.GLFW_CURSOR_HIDDEN);
 
         DoubleBuffer x = BufferUtils.createDoubleBuffer(1);
@@ -59,8 +60,8 @@ public class Camera {
 
         GLFW.glfwSetCursorPos(window, Valkyrie.width / 2, Valkyrie.height / 2);
 
-        rotationX += deltaX * delta * 2;
-        rotationY += deltaY * delta * 2;
+        rotationX += deltaX * (1 / delta) * SENSITIVITY_MULTIPLIER * sensitivity;
+        rotationY += deltaY * (1 / delta) * SENSITIVITY_MULTIPLIER * sensitivity;
 
         rotationX = rotationX % 360;
         rotationY = Math.min(Math.max(-90, rotationY), 90);

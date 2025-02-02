@@ -51,10 +51,13 @@ public class WorldScene implements Scene {
     float[] baseSkyColor = new float[] { 0.125f, 0.5f, 0.375f };
     ImBoolean vsync = new ImBoolean(true);
     int[] resolutionScale = new int[] { 4 };
-    ImInt msaaSamples = new ImInt(2);
+    int[] msaaSamples = new int[] { 1 };
     ImBoolean experimentalRendering = new ImBoolean(false);
+    float[] sensitivity = new float[] { 0.5f };
     float dayTime = 0.3f;
     boolean debug = false;
+
+    private static final int[] msaaLevels = new int[] { 0, 1, 2, 4, 8, 16 };
 
     private int selectedBlock = 1;
 
@@ -98,7 +101,7 @@ public class WorldScene implements Scene {
 
         fboProgram = new ShaderProgram("fboVertex.glsl", "fboFragment.glsl");
 
-        fbo = new Framebuffer(Valkyrie.width, Valkyrie.height, msaaSamples.get());
+        fbo = new Framebuffer(Valkyrie.width, Valkyrie.height, msaaLevels[msaaSamples[0]]);
         shadowFbo = new DepthFramebuffer();
         intermediateFbo = new IntermediateFramebuffer(Valkyrie.width, Valkyrie.height);
 
@@ -189,7 +192,7 @@ public class WorldScene implements Scene {
         }
 
         if (!debug) {
-            camera.update(Valkyrie.windowId, delta);
+            camera.update(Valkyrie.windowId, delta, sensitivity[0]);
             if (Input.isButtonJustPressed(GLFW_MOUSE_BUTTON_1)) {
                 var position = world.rayCast(camera.getPosition(), camera.getDirection(), 8, false);
                 if (position != null) {
@@ -305,15 +308,17 @@ public class WorldScene implements Scene {
         program.setUniform("lightDir", new Vector3f(shadowCameraPosition).normalize());
         program.setUniform("camPos", camera.getPosition());
         program.setUniform("camChunkPos", new Vector3i((int)(camera.getPosition().x / 32), (int)(camera.getPosition().y / 32), (int)(camera.getPosition().z / 32)));
-        program.setUniform("dayTime", worldTime);
-        program.setUniform("worldTime", (float) glfwGetTime() * 0.0625f);
-        program.setUniform("light", lightPow);
+        program.setUniformFloat("dayTime", worldTime);
+        program.setUniformFloat("worldTime", (float) glfwGetTime() * 0.0625f);
+        program.setUniformFloat("light", lightPow);
         program.setUniform("skyColor", skyColor);
-        program.setUniform("fogMinDistance", fogDistance[0]);
-        program.setUniform("fogMaxDistance", fogDistance[1]);
-        program.setUniform("triangleSizeMultiplier", experimentalRendering.get() ? 2 : 1);
+        program.setUniformFloat("fogMinDistance", fogDistance[0]);
+        program.setUniformFloat("fogMaxDistance", fogDistance[1]);
+        program.setUniformInt("triangleSizeMultiplier", experimentalRendering.get() ? 2 : 1);
         glDisable(GL_BLEND);
         glActiveTexture(GL_TEXTURE0);
+        glEnable(GL_SAMPLE_SHADING);
+        glMinSampleShading(1f);
         glBindTexture(GL_TEXTURE_2D, texture.getId());
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, shadowFbo.getDepthTextureId());
@@ -336,7 +341,7 @@ public class WorldScene implements Scene {
         glClearColor(1, 1, 1, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         fboProgram.bind();
-        fboProgram.setUniform("saturation", saturation[0]);
+        fboProgram.setUniformFloat("saturation", saturation[0]);
         glBindVertexArray(quadVao);
         glDisable(GL_DEPTH_TEST);
         glBindBuffer(GL_ARRAY_BUFFER, quadVbo);
@@ -361,6 +366,23 @@ public class WorldScene implements Scene {
 
             ImGui.beginTabBar("tabs");
 
+            if (ImGui.beginTabItem("Options")) {
+                ImGui.textColored(0xff77bb55, "Controls");
+                ImGui.sliderFloat("Mouse sensitivity", sensitivity, 0f, 1f);
+                ImGui.textColored(0xff00ff44, "World");
+                ImGui.sliderFloat("Time speed", timeSpeed, 0f, 1f);
+                ImGui.sliderInt("Render distance", renderRadius, 1, 32, renderRadius[0] * 32 + "m");
+                ImGui.sliderFloat2("Fog distance", fogDistance, 0f, 512f);
+                ImGui.colorEdit3("Sky color", baseSkyColor);
+                ImGui.textColored(0xff3377ff, "Graphics");
+                ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
+                ImGui.sliderInt("Resolution", resolutionScale, 1, 6, (resolutionScale[0] * 0.25f) + "x");
+                ImGui.sliderInt("MSAA samples", msaaSamples, 0, msaaLevels.length - 1, msaaLevels[msaaSamples[0]] + "x");
+                ImGui.checkbox("VSync", vsync);
+                ImGui.checkbox("Experimental polygon rendering", experimentalRendering);
+                ImGui.endTabItem();
+            }
+
             if (ImGui.beginTabItem("Data")) {
                 ImGui.text("World time: " + worldTime);
                 ImGui.text("Sun angle: " + sunAngle);
@@ -373,27 +395,6 @@ public class WorldScene implements Scene {
                     ImGui.text("Meshes to delete: " + meshesToDelete.size());
                     ImGui.text("Meshes to update: " + meshesToUpdate.size());
                 }
-                ImGui.endTabItem();
-            }
-
-            if (ImGui.beginTabItem("Params")) {
-                ImGui.textColored(0xff00ff44, "World");
-                ImGui.sliderFloat("Time speed", timeSpeed, 0f, 1f);
-                ImGui.sliderInt("Render distance", renderRadius, 1, 32, renderRadius[0] * 32 + "m");
-                ImGui.sliderFloat2("Fog distance", fogDistance, 0f, 512f);
-                ImGui.colorEdit3("Sky color", baseSkyColor);
-                ImGui.textColored(0xff3377ff, "Graphics");
-                ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
-                ImGui.sliderInt("Resolution", resolutionScale, 1, 6, (resolutionScale[0] * 0.25f) + "x");
-                ImGui.text("MSAA samples:");
-                ImGui.radioButton("Disabled", msaaSamples, 0);
-                ImGui.radioButton("1x", msaaSamples, 1);
-                ImGui.radioButton("2x", msaaSamples, 2);
-                ImGui.radioButton("4x", msaaSamples, 4);
-                ImGui.radioButton("8x", msaaSamples, 8);
-                ImGui.radioButton("16x", msaaSamples, 16);
-                ImGui.checkbox("VSync", vsync);
-                ImGui.checkbox("Experimental polygon rendering", experimentalRendering);
                 ImGui.endTabItem();
             }
 
@@ -431,7 +432,7 @@ public class WorldScene implements Scene {
         height *= (resolutionScale[0] * 0.25f);
         program.bind();
         program.setUniform("proj", Camera.createProjectionMatrix(width, height));
-        fbo.resize(width, height, msaaSamples.get());
+        fbo.resize(width, height, msaaLevels[msaaSamples[0]]);
         intermediateFbo.resize(width, height);
     }
 
@@ -439,8 +440,8 @@ public class WorldScene implements Scene {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uiProgram.bind();
-        uiProgram.setUniform("width", Valkyrie.width);
-        uiProgram.setUniform("height", Valkyrie.height);
+        uiProgram.setUniformInt("width", Valkyrie.width);
+        uiProgram.setUniformInt("height", Valkyrie.height);
 
 //        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, fontPositionBuffer);
 //        glBufferData(GL_DRAW_INDIRECT_BUFFER, new int[] { 3, 1, 0, 0 }, GL_DYNAMIC_DRAW);
@@ -464,8 +465,8 @@ public class WorldScene implements Scene {
         glMultiDrawArraysIndirect(GL_TRIANGLES, 0, 1, 0);
 
         fontProgram.bind();
-        fontProgram.setUniform("width", Valkyrie.width);
-        fontProgram.setUniform("height", Valkyrie.height);
+        fontProgram.setUniformFloat("width", Valkyrie.width);
+        fontProgram.setUniformFloat("height", Valkyrie.height);
 
         var data2 = new ArrayList<Integer>();
         drawButton(Valkyrie.width / 2 - 32 / 2, Valkyrie.height / 2 - 32 / 2, 32, 32, 254, data2);
@@ -610,9 +611,6 @@ public class WorldScene implements Scene {
         checkCollisions(new Vector3f(0, 0, (float) camera.movement.z), position, dimensions, camera.movement);
 
         camera.setPosition(position.add(0, 1.5f, 0));
-
-//        camera.movement = new Vector3d();
-//        camera.movement.y = movement.y;
     }
 
     private void checkCollisions(Vector3f vel, Vector3f position, Vector3f dimensions, Vector3d movement) {

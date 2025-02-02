@@ -12,6 +12,8 @@ out vec2 texOffset;
 uniform mat4 proj;
 uniform mat4 view;
 uniform float dayTime;
+uniform vec3 lightDir;
+uniform float light;
 uniform float worldTime;
 uniform mat4 shadowProj;
 uniform mat4 shadowView;
@@ -63,7 +65,7 @@ void main()
     float positionZ = int((position.x >> 14) & 0x3fu);
     int width = int((position.x >> 23) & 0x7fu) + 1;
     int height = int((position.y >> 20) & 0x7fu) + 1;
-    int light = int(position.y & 0xfffu);
+    int blockLight = int(position.y & 0xfffu);
     int texture = (int(position.y >> 12) & 0xff);
 
     if (face == 0) {
@@ -107,7 +109,11 @@ void main()
     }
     textureCoords = vec2(x, y + triangleSizeMultiplier - 1);
     outData = vec4(x * width, y * height, texture, shadow[face]);
-    passLight = vec4((light >> 9) & 0x7, (light >> 6) & 0x7, (light >> 3) & 0x7, light & 0x7) / 8;
+
+    float dotProduct = max(dot(normal[face], lightDir), 0.75);
+    passLight = vec4((blockLight >> 9) & 0x7, (blockLight >> 6) & 0x7, (blockLight >> 3) & 0x7, blockLight & 0x7) / 8.0;
+    float s = max(0.125, passLight.a * light * dotProduct);
+    passLight = vec4(vec3(max(passLight.r, s), max(passLight.g, s), max(passLight.b, s)), 1.0);
 
     vs_out.FragPos = vec3(gl_Position.xyz);
     vs_out.Normal = normal[face];

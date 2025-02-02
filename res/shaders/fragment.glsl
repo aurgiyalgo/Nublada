@@ -76,11 +76,7 @@ void main()
         discard;
     }
 
-    float dotProduct = max(dot(fs_in.Normal, lightDir), 0.75);
-    float shadow = 1 - passLight.a;
-    float s = max(0.125, passLight.a * light * dotProduct);
-
-    FragColor = vec4((vec3(color.r * max(passLight.r, s), color.g * max(passLight.g, s), color.b * max(passLight.b, s)) * outData.a), 1.0);
+    FragColor = vec4((vec3(color.r * passLight.r, color.g * passLight.g, color.b * passLight.b) * outData.a), 1.0);
 
     vec3 distance = vec3(fs_in.FragPos.x - mod(camPos.x, 32), fs_in.FragPos.y - camPos.y, fs_in.FragPos.z - mod(camPos.z, 32));
     if (length(distance) > fogMinDistance) {

@@ -62,11 +62,11 @@ public class ShaderProgram {
         glUniformMatrix4fv(getUniformLocation(uniformName), false, value.get(buffer));
     }
 
-    public void setUniform(String uniformName, float value) {
+    public void setUniformFloat(String uniformName, float value) {
         glUniform1f(getUniformLocation(uniformName), value);
     }
 
-    public void setUniform(String uniformName, int value) {
+    public void setUniformInt(String uniformName, int value) {
         glUniform1i(getUniformLocation(uniformName), value);
     }
 
