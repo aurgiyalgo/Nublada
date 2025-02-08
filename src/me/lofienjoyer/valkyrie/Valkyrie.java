@@ -1,15 +1,26 @@
 package me.lofienjoyer.valkyrie;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.glViewport;
+import static org.lwjgl.opengl.GL46.*;
 
 public class Valkyrie {
+
+    private static final SimpleDateFormat SCREENSHOT_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS");
 
     public static ExecutorService executorService;
 
@@ -60,6 +71,9 @@ public class Valkyrie {
         while (!GLFW.glfwWindowShouldClose(windowId)) {
             scene.draw(delta);
 
+            if (Input.isKeyJustPressed(GLFW_KEY_F2))
+                takeScreenshot();
+
             input.update();
             glfwPollEvents();
             glfwSwapBuffers(windowId);
@@ -72,6 +86,31 @@ public class Valkyrie {
         executorService.shutdownNow();
         scene.dispose();
         System.out.println("Average frame time: " + ((float) counter / 1000000f) / frames + "ms");
+    }
+
+    private static void takeScreenshot() {
+        var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var buffer = BufferUtils.createByteBuffer(width * height * 4);
+        glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        new Thread(() -> {
+            for (int x = image.getWidth() - 1; x >= 0; x--) {
+                for (int y = image.getHeight() - 1; y >= 0; y--) {
+                    int i = (x + width * y) * 4;
+                    image.setRGB(x, image.getHeight() - 1 - y, (((buffer.get(i) & 0xFF) & 0x0ff) << 16) | (((buffer.get(i + 1) & 0xFF) & 0x0ff) << 8) | ((buffer.get(i + 2) & 0xFF) & 0x0ff));
+                }
+            }
+            var calendar = Calendar.getInstance();
+            var date = Date.from(calendar.toInstant());
+            var fileName = SCREENSHOT_DATE_FORMAT.format(date) + ".png";
+            var screenshotsFolder = new File("screenshots");
+            if (!screenshotsFolder.exists())
+                screenshotsFolder.mkdir();
+            try {
+                ImageIO.write(image, "png", Paths.get("screenshots", fileName).toFile());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
     }
 
 }
