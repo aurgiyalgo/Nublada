@@ -32,8 +32,8 @@ public class World {
         this.chunks = new HashMap<>();
         var random = new SplittableRandom(System.nanoTime());
         this.noise = new FastNoiseLite(random.nextInt());
-        noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
-        noise.SetFrequency(1 / 256f);
+        noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+        noise.SetFrequency(1 / 512f);
         this.caveNoise = new FastNoiseLite(random.nextInt());
         caveNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
         caveNoise.SetFrequency(1 / 64f);

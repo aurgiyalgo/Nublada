@@ -27,7 +27,6 @@ public class Camera {
         this.position = new Vector3d(2 * 32 * 32, 128, 2 * 32 * 32);
         this.direction = new Vector3f();
         this.movement = new Vector3d();
-        rotationY = 90;
         updateDirection();
     }
 
