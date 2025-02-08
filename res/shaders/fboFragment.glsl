@@ -33,7 +33,7 @@ void main()
 {
     vec4 color = texture(screenTexture, TexCoords);
     vec3 col_hsv = RGBtoHSV(color.rgb);
-    col_hsv.y *= (saturation * 2.0);
+    col_hsv.y *= saturation;
     vec3 col_rgb = HSVtoRGB(col_hsv.rgb);
 
     FragColor = vec4(col_rgb.rgb, color.a);

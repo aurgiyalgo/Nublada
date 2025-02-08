@@ -44,7 +44,7 @@ public class WorldScene implements Scene {
     private FrustumIntersection intersection;
 
     boolean wireframe = false;
-    float[] saturation = new float[] { 0.5f };
+    float[] saturation = new float[] { 1.2f };
     float[] timeSpeed = new float[] { 0.001f };
     int[] renderRadius = new int[] { 3 };
     float[] fogDistance = new float[] { 64f, 192f };
@@ -54,6 +54,7 @@ public class WorldScene implements Scene {
     int[] msaaSamples = new int[] { 1 };
     ImBoolean experimentalRendering = new ImBoolean(false);
     float[] sensitivity = new float[] { 0.5f };
+    int[] fov = new int[] { 75 };
     float dayTime = 0.3f;
     boolean debug = false;
 
@@ -132,7 +133,7 @@ public class WorldScene implements Scene {
 
         sunProgram = new ShaderProgram("sunVertex.glsl", "sunFragment.glsl");
         sunProgram.bind();
-        sunProgram.setUniform("proj", Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height));
+        sunProgram.setUniform("proj", Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height, fov[0]));
         sunTexture = new Texture("res/textures/sun.png");
 
         uiProgram = new ShaderProgram("uiVertex.glsl", "uiFragment.glsl");
@@ -161,7 +162,7 @@ public class WorldScene implements Scene {
 
         camera = new Camera();
         program.bind();
-        program.setUniform("proj", Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height));
+        program.setUniform("proj", Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height, fov[0]));
 
         shadowCamera = new Camera();
         shadowCamera.setPosition(new Vector3f(0, 200, 0));
@@ -229,7 +230,7 @@ public class WorldScene implements Scene {
         simulatePhysics(camera, delta, world);
         world.setRenderRadius(renderRadius[0]);
 
-        intersection.set(Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height).mul(Camera.createCompleteViewMatrix(camera)));
+        intersection.set(Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height, fov[0]).mul(Camera.createCompleteViewMatrix(camera)));
 
         // lock
         synchronized (Valkyrie.lock) {
@@ -286,10 +287,10 @@ public class WorldScene implements Scene {
         var transformMatrix = new Matrix4f();
         transformMatrix.identity();
         transformMatrix.rotate((float) (-worldTime * Math.PI * 2 - Math.PI / 2f),  new Vector3f(1, 0, 0));
-        transformMatrix.rotate((float) Math.toRadians(10),  new Vector3f(0, 1, 0));
+        transformMatrix.rotate((float) (Math.toRadians(10) * Math.sin(dayTime * 0.02)),  new Vector3f(0, 1, 0));
         transformMatrix.rotate((float) Math.toRadians(3),  new Vector3f(0, 0, 1));
         transformMatrix.translate(0, 0, -100);
-        transformMatrix.scale(2.5f);
+        transformMatrix.scale(2.5f + (float) (Math.sin(dayTime * 0.1)) * 10f);
         glBindTexture(GL_TEXTURE_2D, sunTexture.getId());
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -370,12 +371,13 @@ public class WorldScene implements Scene {
                 ImGui.textColored(0xff77bb55, "Controls");
                 ImGui.sliderFloat("Mouse sensitivity", sensitivity, 0f, 1f);
                 ImGui.textColored(0xff00ff44, "World");
-                ImGui.sliderFloat("Time speed", timeSpeed, 0f, 1f);
+                ImGui.sliderFloat("Time speed", timeSpeed, 0f, 10f);
                 ImGui.sliderInt("Render distance", renderRadius, 1, 32, renderRadius[0] * 32 + "m");
                 ImGui.sliderFloat2("Fog distance", fogDistance, 0f, 512f);
                 ImGui.colorEdit3("Sky color", baseSkyColor);
                 ImGui.textColored(0xff3377ff, "Graphics");
-                ImGui.sliderFloat("Saturation", saturation, 0.25f, 0.75f);
+                ImGui.sliderFloat("Saturation", saturation, 0f, 2f);
+                ImGui.sliderInt("FOV", fov, 20, 135);
                 ImGui.sliderInt("Resolution", resolutionScale, 1, 6, (resolutionScale[0] * 0.25f) + "x");
                 ImGui.sliderInt("MSAA samples", msaaSamples, 0, msaaLevels.length - 1, msaaLevels[msaaSamples[0]] + "x");
                 ImGui.checkbox("VSync", vsync);
@@ -431,9 +433,10 @@ public class WorldScene implements Scene {
         width *= (resolutionScale[0] * 0.25f);
         height *= (resolutionScale[0] * 0.25f);
         program.bind();
-        program.setUniform("proj", Camera.createProjectionMatrix(width, height));
+        program.setUniform("proj", Camera.createProjectionMatrix(width, height, fov[0]));
         fbo.resize(width, height, msaaLevels[msaaSamples[0]]);
         intermediateFbo.resize(width, height);
+        intersection.set(Camera.createProjectionMatrix(Valkyrie.width, Valkyrie.height, fov[0]).mul(Camera.createCompleteViewMatrix(camera)));
     }
 
     private void drawMenu(ShaderProgram uiProgram, Texture versionTexture) {

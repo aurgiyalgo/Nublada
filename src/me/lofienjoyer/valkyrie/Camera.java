@@ -175,9 +175,9 @@ public class Camera {
         return matrix.lookAt(position, lookAt, new Vector3f(0, 1, 0));
     }
 
-    public static Matrix4f createProjectionMatrix(int width, int height) {
+    public static Matrix4f createProjectionMatrix(int width, int height, int fov) {
         var projectionMatrix = new Matrix4f();
-        projectionMatrix.perspective((float) Math.toRadians(80), width / (float)height, 0.1f, 4096f);
+        projectionMatrix.perspective((float) Math.toRadians(fov), width / (float)height, 0.1f, 4096f);
         return projectionMatrix;
     }
 

@@ -33,7 +33,7 @@ public class World {
         var random = new SplittableRandom(System.nanoTime());
         this.noise = new FastNoiseLite(random.nextInt());
         noise.SetNoiseType(FastNoiseLite.NoiseType.Value);
-        noise.SetFrequency(1 / 128f);
+        noise.SetFrequency(1 / 256f);
         this.caveNoise = new FastNoiseLite(random.nextInt());
         caveNoise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
         caveNoise.SetFrequency(1 / 64f);
@@ -419,8 +419,8 @@ public class World {
                 }
             }
             amplitudeSum += amplitude;
-            amplitude *= 0.25f;
-            frequency *= 3.5f;
+            amplitude *= 0.5f;
+            frequency *= 2.0f;
         }
 
         for (int i = 0; i < octaves.length; i++) {
