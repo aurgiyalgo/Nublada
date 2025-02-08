@@ -114,7 +114,7 @@ public class GreedyMesher {
                             voxelFace = voxelA.textureId;
                             voxelFace1 = voxelB.textureId;
 
-                            mask[n++] = (((voxelFace == 0 || voxelFace1 == 0) || (voxelA.transparent || voxelB.transparent)))
+                            mask[n++] = (((voxelFace == 0 || voxelFace1 == 0) || (voxelA.transparent && !voxelB.transparent) || (!voxelA.transparent && voxelB.transparent)))
                                     ? backFace ? (voxelFace1 << 12) | getLight(x[0], x[1], x[2]) : (voxelFace << 12) | getLight((x[0] + q[0]), (x[1] + q[1]), (x[2] + q[2]))
                                     : 0;
                         }

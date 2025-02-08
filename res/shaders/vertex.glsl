@@ -85,7 +85,7 @@ void main()
     }
 
     texOffset = vec2(0);
-    if (texture == 3 || texture == 7 || texture == 8) {
+    if (texture == 3 || texture == 7 || texture == 8 || texture == 9) {
         texOffset.x += (sin((positionX + worldTime) * 4) + 1) / 16;
         texOffset.y += (sin((positionY + worldTime + 2) * 20) + 1) / 32;
     }
@@ -110,8 +110,8 @@ void main()
     textureCoords = vec2(x, y + triangleSizeMultiplier - 1);
     outData = vec4(x * width, y * height, texture, shadow[face]);
 
-    float dotProduct = max(dot(normal[face], lightDir), 0.75);
-    passLight = vec4((blockLight >> 9) & 0x7, (blockLight >> 6) & 0x7, (blockLight >> 3) & 0x7, blockLight & 0x7) / 8.0;
+    float dotProduct = max(dot(normal[face], lightDir), 0.85);
+    passLight = vec4((blockLight >> 9) & 0x7, (blockLight >> 6) & 0x7, (blockLight >> 3) & 0x7, blockLight & 0x7) / 7.0;
     float s = max(0.125, passLight.a * light * dotProduct);
     passLight = vec4(vec3(max(passLight.r, s), max(passLight.g, s), max(passLight.b, s)), 1.0);
 

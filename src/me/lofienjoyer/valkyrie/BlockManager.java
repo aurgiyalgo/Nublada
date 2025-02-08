@@ -40,10 +40,12 @@ public class BlockManager {
                 var greenLight = (int) data.getOrDefault("greenLight", 0);
                 var blueLight = (int) data.getOrDefault("blueLight", 0);
                 var transparency = (int) data.getOrDefault("transparency", 0);
+                var collision = (boolean) data.getOrDefault("collision", true);
 
                 var blockType = new BlockType(id, texture, (redLight & 0x7) << 8 | (greenLight & 0x7) << 4 | (blueLight & 0x7));
                 blockType.transparent = transparent;
                 blockType.transparency = transparency;
+                blockType.collision = collision;
                 BLOCK_TYPES.set(id, blockType);
             } catch (FileNotFoundException e) {
                 throw new RuntimeException(e);

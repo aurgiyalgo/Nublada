@@ -21,6 +21,7 @@ uniform vec3 skyColor;
 uniform float fogMinDistance;
 uniform float fogMaxDistance;
 uniform int triangleSizeMultiplier;
+uniform int blending;
 
 const int atlasSize = 256;
 const int textureSize = 16;
@@ -72,11 +73,17 @@ void main()
     float xUv = mod(outData.z, texturesPerSide) / texturesPerSide + mod(outData.x + texOffset.x, 1.0) / texturesPerSide;
     float yUv = int(outData.z / texturesPerSide) / float(texturesPerSide) + mod(outData.y + texOffset.y, 1.0) / texturesPerSide;
     vec4 color = texture(textureSampler, vec2(xUv, yUv));
-    if (color.a < 1.0) {
-        discard;
+    if (blending == 0) {
+        if (color.a != 1) {
+            discard;
+        }
+    } else {
+        if (color.a == 1) {
+            discard;
+        }
     }
 
-    FragColor = vec4((vec3(color.r * passLight.r, color.g * passLight.g, color.b * passLight.b) * outData.a), 1.0);
+    FragColor = vec4((vec3(color.r * passLight.r, color.g * passLight.g, color.b * passLight.b) * outData.a), color.a);
 
     vec3 distance = vec3(fs_in.FragPos.x - mod(camPos.x, 32), fs_in.FragPos.y - camPos.y, fs_in.FragPos.z - mod(camPos.z, 32));
     if (length(distance) > fogMinDistance) {

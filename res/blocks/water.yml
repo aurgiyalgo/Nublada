@@ -1,0 +1,6 @@
+name: 'water'
+id: 9
+texture: 9
+transparent: true
+transparency: 1
+collision: false

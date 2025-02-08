@@ -46,8 +46,8 @@ public class WorldScene implements Scene {
     boolean wireframe = false;
     float[] saturation = new float[] { 1.2f };
     float[] timeSpeed = new float[] { 0.001f };
-    int[] renderRadius = new int[] { 3 };
-    float[] fogDistance = new float[] { 64f, 192f };
+    int[] renderRadius = new int[] { 4 };
+    float[] fogDistance = new float[] { 64f, 128f };
     float[] baseSkyColor = new float[] { 0.125f, 0.5f, 0.375f };
     ImBoolean vsync = new ImBoolean(true);
     int[] resolutionScale = new int[] { 4 };
@@ -316,6 +316,7 @@ public class WorldScene implements Scene {
         program.setUniformFloat("fogMinDistance", fogDistance[0]);
         program.setUniformFloat("fogMaxDistance", fogDistance[1]);
         program.setUniformInt("triangleSizeMultiplier", experimentalRendering.get() ? 2 : 1);
+        program.setUniformInt("blending", 0);
         glDisable(GL_BLEND);
         glActiveTexture(GL_TEXTURE0);
         glEnable(GL_SAMPLE_SHADING);
@@ -329,6 +330,11 @@ public class WorldScene implements Scene {
         glBindBuffer(GL_DRAW_INDIRECT_BUFFER, indirectBuffer);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunkPositionBuffer);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunkPositionBuffer);
+        glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        program.setUniformInt("blending", 1);
         glMultiDrawArraysIndirect(GL_TRIANGLE_FAN, 0, drawLength, 0);
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo.getId());
@@ -622,7 +628,7 @@ public class WorldScene implements Scene {
                 for (float z = position.z - dimensions.z; z <= position.z + dimensions.z; z += dimensions.z) {
                     var voxel = world.getBlock((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
 
-                    if (voxel != 0) {
+                    if (voxel != 0 && BlockManager.getVoxelById(voxel).collision) {
                         if (vel.y > 0) {
                             position.y = (int)y - dimensions.y - 1 / 128f;
                             movement.y = 0;

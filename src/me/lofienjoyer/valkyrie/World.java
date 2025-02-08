@@ -30,7 +30,7 @@ public class World {
 
     public World() {
         this.chunks = new HashMap<>();
-        var random = new SplittableRandom(System.nanoTime());
+        var random = new SplittableRandom(16);
         this.noise = new FastNoiseLite(random.nextInt());
         noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
         noise.SetFrequency(1 / 512f);
@@ -151,13 +151,17 @@ public class World {
                         chunk.setBlock(x, y, z, 0);
                 }
 
+                for (int y = (int)height; y < 62; y++) {
+                    chunk.setBlock(x, y + 1, z, 9);
+                }
+
                 for (int y = 0; y < height; y++) {
                     if (y < random.nextInt(5) + 1) {
                         chunk.setBlock(x, y, z, 5);
                     }
                 }
 
-                if (height > 0 && chunk.getBlock(x, (int) height, z) != 0 && noise.GetNoise((chunkX * 32 + x) * 512, (chunkZ * 32 + z) * 512) > 0.95 && height + 7 < 128 && x < 30 && x > 2 && z < 30 && z > 2) {
+                if (height > 64 && chunk.getBlock(x, (int) height, z) != 0 && noise.GetNoise((chunkX * 32 + x) * 512, (chunkZ * 32 + z) * 512) > 0.95 && height + 7 < 128 && x < 30 && x > 2 && z < 30 && z > 2) {
                     if (random.nextInt(100) == 0) {
                         for (int i = -3; i <= 3; i++) {
                             for (int j = -3; j <= 3; j++) {
