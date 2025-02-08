@@ -70,24 +70,26 @@ public class Camera {
         movement.x = 0;
         movement.z = 0;
 
+        var movementSpeed = SPEED * delta * (Input.isKeyPressed(GLFW_KEY_LEFT_SHIFT) ? 1.5f : 1f);
+
         if (glfwGetKey(window, GLFW_KEY_W) != 0) {
-            movement.z -= Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            movement.x += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.z -= Math.cos(Math.toRadians(rotationX)) * movementSpeed;
+            movement.x += Math.sin(Math.toRadians(rotationX)) * movementSpeed;
         }
 
         if (glfwGetKey(window, GLFW_KEY_S) != 0) {
-            movement.z += Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            movement.x -= Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.z += Math.cos(Math.toRadians(rotationX)) * movementSpeed;
+            movement.x -= Math.sin(Math.toRadians(rotationX)) * movementSpeed;
         }
 
         if (glfwGetKey(window, GLFW_KEY_A) != 0) {
-            movement.x -= Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            movement.z -= Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.x -= Math.cos(Math.toRadians(rotationX)) * movementSpeed;
+            movement.z -= Math.sin(Math.toRadians(rotationX)) * movementSpeed;
         }
 
         if (glfwGetKey(window, GLFW_KEY_D) != 0) {
-            movement.x += Math.cos(Math.toRadians(rotationX)) * delta * SPEED;
-            movement.z += Math.sin(Math.toRadians(rotationX)) * delta * SPEED;
+            movement.x += Math.cos(Math.toRadians(rotationX)) * movementSpeed;
+            movement.z += Math.sin(Math.toRadians(rotationX)) * movementSpeed;
         }
 
 //        if (glfwGetKey(window, GLFW_KEY_SPACE) != 0) {
